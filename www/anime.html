@@ -258,7 +258,7 @@ async function getAnimeMeta(title,hint){
           if(bm){const m=await fetchBgmMeta(bm[1],key);if(m)return m;}
         }
         // bgm 链接无效(蜜柑挂的旧链接/条目已删)→ 蜜柑封面+番名兑底(至少出封面)
-        const mkUrl=u=>u?u.replace(/^https?:\/\/mikanani\.me/,'/mikan-p'):'';
+        const mkUrl=u=>u?u.replace(/^https?:\/\/mikanani\.me/,'/mikan-p').replace(/^\/images\//,'/mikan-p/images/'):'';
         const meta={name:mkName,img:mkUrl(mkImg),score:'',eps:'',updated:'',tags:[],ts:Date.now()};
         try{localStorage.setItem(key,JSON.stringify(meta));}catch(e){}
         return meta;

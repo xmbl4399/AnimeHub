@@ -122,7 +122,7 @@ function startFbAuthCheck(){
 function hideDeadTabs(){
   const hideTab=v=>{const t=document.querySelector('.tab[data-v="'+v+'"]');if(t)t.style.display='none';};
   fetch('/pan/',{cache:'no-store'}).then(r=>{if(r.status===404||r.status>=500)hideTab('pan');}).catch(()=>hideTab('pan'));
-  fetch('/fb/api/users?id=self',{cache:'no-store'}).then(r=>{if(r.status===404||r.status>=500)hideTab('fb');}).catch(()=>hideTab('fb'));
+  fetch('/fb/',{cache:'no-store'}).then(r=>{if(r.status===404||r.status>=500)hideTab('fb');}).catch(()=>hideTab('fb'));
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.v));
 hideDeadTabs();
