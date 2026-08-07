@@ -1,17 +1,20 @@
-// verify-ipk.js:检查 kwrt-mediahub ipk 的 ar 结构 + 提取成员供 tar 核对
+// verify-ipk.js:检查 ipk 结构(gzip+tar 包装)+ 提取成员供 tar 核对
 // 用法:node verify-ipk.js [ipk文件]
-const fs=require('fs'),path=require('path');
+const fs=require('fs'),path=require('path'),zlib=require('zlib');
 const ipk=process.argv[2]||path.join(__dirname,'kwrt-mediahub_1.0.0-1_all.ipk');
-const b=fs.readFileSync(ipk);
-console.log('magic:',JSON.stringify(b.slice(0,8).toString()));
-let off=8,ok=true;
-while(off<b.length){
-  const h=b.slice(off,off+60).toString();
-  const name=h.slice(0,16).trim();
-  const size=parseInt(h.slice(48,58).trim(),10);
+const raw=fs.readFileSync(ipk);
+const b=(raw[0]===0x1f&&raw[1]===0x8b)?zlib.gunzipSync(raw):raw;
+console.log('ipk 大小:',raw.length,'| 解压后:',b.length,'| tar magic:',JSON.stringify(b.slice(257,263).toString()));
+// 遍历 tar 成员
+let off=0,ok=true;
+while(off+512<=b.length){
+  const block=b.slice(off,off+512);
+  if(block.every(x=>x===0))break; // 结束块
+  const name=block.slice(0,100).toString().replace(/\0.*$/,'');
+  const size=parseInt(block.slice(124,136).toString().replace(/\0.*$/,'').trim(),8)||0;
+  if(!name){ok=false;break;}
   console.log('member:',name,'size:',size);
-  if(h[58]!=='`'||h[59]!=='\n'){ok=false;console.log('BAD HEADER at',off);}
-  fs.writeFileSync(path.join(__dirname,'pkg','_'+name),b.slice(off+60,off+60+size));
-  off+=60+size+(size%2?1:0);
+  fs.writeFileSync(path.join(__dirname,'pkg','_'+name.replace(/^\.\//,'')),b.slice(off+512,off+512+size));
+  off+=512+Math.ceil(size/512)*512;
 }
-console.log('ar header ok:',ok,'| end:',off,'| file len:',b.length);
+console.log('tar 解析 ok:',ok,'| end:',off,'| len:',b.length);

@@ -38,7 +38,7 @@ uci set mediahub.@main[0].dir="$DIR"
 uci set mediahub.@main[0].root="$ROOT"
 uci commit mediahub
 
-IP=$(uci get network.lan.ipaddr 2>/dev/null)
+IP=$(uci get network.lan.ipaddr 2>/dev/null | cut -d/ -f1)
 echo "=== 安装完成 ==="
 echo "下一步:"
 echo "  1. 打开 LuCI → 服务 → 番剧库,确认下载目录/媒体根,点「立即应用」"
