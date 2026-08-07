@@ -1,7 +1,9 @@
 # Bangumi API 反代(番剧海报/信息刮削)
 # 搜索/详情接口 12h 缓存(元数据基本不变);封面图 lain.bgm.tv 被 fake-ip 挡(nginx 本机连不上),由前端直连浏览器访问
 location /bgm/ {
-    proxy_pass https://api.bgm.tv/;
+    resolver 114.114.114.114 valid=300s;
+    set $bgm_host 'api.bgm.tv';
+    proxy_pass https://$bgm_host/;
     proxy_set_header User-Agent "media-hub/1.0 (xmbl4399; https://github.com/xmbl4399/media-hub)";
     proxy_ssl_server_name on;
     proxy_cache mikan_img;
@@ -35,7 +37,9 @@ location ~* ^/lain/(.*)$ {
 # bgm v0 集数列表(已更新集数):1h 短缓存(新集更新及时;bgm 收录本身有延迟,1h 足够)
 # 正则 location 优先于上方前缀 location,只影响 episodes 接口
 location ~* ^/bgm/v0/episodes {
-    proxy_pass https://api.bgm.tv/v0/episodes$is_args$args;
+    resolver 114.114.114.114 valid=300s;
+    set $bgm_host 'api.bgm.tv';
+    proxy_pass https://$bgm_host/v0/episodes$is_args$args;
     proxy_set_header User-Agent "media-hub/1.0 (xmbl4399; https://github.com/xmbl4399/media-hub)";
     proxy_ssl_server_name on;
     proxy_cache mikan_img;
