@@ -113,6 +113,44 @@ luci-app-mediahub/
 
 **坑**:uhttpd cgi 必须 `echo "Content-Type: application/json"` + 空行,否则 502 "did not produce any response";apply.sh 的 sed 用 `|` 分隔符(路径含 /),顺序先替换根再替换 Aria2 特例。
 
+## 安装前置条件(出厂 OpenWrt 路由器)
+
+装 ipk 前,基于全新 OpenWrt/Kwrt 固件需要准备:
+
+### 1. 软件依赖(ipk 不包含,需先装)
+```sh
+opkg update
+opkg install aria2 luci-app-aria2    # 下载引擎(必需)
+# nginx / luci-base 固件一般自带;如缺失:opkg install nginx luci-base
+```
+- 可选:`filebrowser`、百度网盘(不装则 hub 的「文件/网盘」tab 自动隐藏)
+- 可选:OpenClash 等代理(访问蜜柑/bgm 更稳定;无代理也可直连)
+
+### 2. 存储准备
+1. 挂载存储分区(U 盘/eMMC),例如 `/mnt/mmcblk0p7`(路径可自定,装完用 LuCI 页面改)
+2. 创建下载目录并设置 aria2 属主:
+   ```sh
+   mkdir -p /mnt/mmcblk0p7/Aria2
+   chown aria2:aria2 /mnt/mmcblk0p7/Aria2
+   ```
+   (install.sh 会自动做第 2 步;手动装 ipk 时需自己做)
+
+### 3. 安装顺序
+```sh
+opkg install kwrt-mediahub_1.0.0-1_all.ipk
+opkg install luci-app-mediahub_1.0.0-1_all.ipk
+```
+(推荐直接用 `install.sh` 一键完成:装依赖 + 检测存储 + 建目录 chown + 装包)
+
+### 4. 装完配置(LuCI → 服务 → 番剧库)
+- 确认「aria2 下载目录」「媒体根目录」→ 点「立即应用」
+- 填「FileBrowser 密码」(可选,填了 hub 文件 tab 免登录)
+
+### 5. 网络说明
+- bgm/封面反代内置 `resolver 114.114.114.114` 直连公网 DNS,**不依赖代理**
+- 蜜柑反代走系统 DNS,**无代理可用但可能慢**,OpenClash 环境更稳
+- 蜜柑反爬:浏览器访问正常;curl 等无浏览器头的请求可能被降级(属蜜柑正常反爬,非故障)
+
 ## 截图
 
 ![番剧库页面](screenshots/anime.jpg)
