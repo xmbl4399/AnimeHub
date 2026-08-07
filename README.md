@@ -116,6 +116,7 @@ luci-app-mediahub/
 ## 截图
 
 ![番剧库页面](screenshots/anime.jpg)
+![番剧库页面(新版样式)](screenshots/anime-new.jpg)
 ![导航主页 hub](screenshots/hub.jpg)
 ![LuCI 控制面板](screenshots/luci.jpg)
 
