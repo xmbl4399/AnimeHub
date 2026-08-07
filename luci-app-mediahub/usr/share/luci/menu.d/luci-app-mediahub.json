@@ -1,0 +1,14 @@
+{
+	"admin/services/mediahub": {
+		"title": "番剧库",
+		"order": 60,
+		"action": {
+			"type": "view",
+			"path": "mediahub/main"
+		},
+		"depends": {
+			"acl": [ "luci-app-mediahub" ],
+			"uci": { "mediahub": true }
+		}
+	}
+}

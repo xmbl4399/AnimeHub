@@ -1,0 +1,55 @@
+#!/bin/sh
+# mediahub-api:luci 控制页面的后端 API(nginx /mediahub-api -> uhttpd cgi-bin)
+# 用法:GET /mediahub-api?action=<act>[&arg=...]
+#   getStatus / getAria2Dir / apply / applydry / rescan / clearCache / testConn / logTail
+echo "Content-Type: application/json"
+echo ""
+A=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([^&]*\).*/\1/p')
+case "$A" in
+  getStatus)
+    A2=$(pgrep -f aria2c >/dev/null && echo 1 || echo 0)
+    NG=$(pgrep -f 'nginx: master' >/dev/null && echo 1 || echo 0)
+    FB=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/fb/api/users?id=self 2>/dev/null)
+    PAN=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/pan/ 2>/dev/null)
+    EN=$(uci get mediahub.@main[0].enabled 2>/dev/null || echo 1)
+    DIR=$(uci get mediahub.@main[0].dir 2>/dev/null)
+    ROOT=$(uci get mediahub.@main[0].root 2>/dev/null)
+    echo "{\"ok\":true,\"enabled\":$EN,\"dir\":\"$DIR\",\"root\":\"$ROOT\",\"aria2\":$A2,\"nginx\":$NG,\"fb\":\"$FB\",\"pan\":\"$PAN\"}"
+    ;;
+  getAria2Dir)
+    D=$(uci get aria2.@aria2[0].dir 2>/dev/null)
+    echo "{\"dir\":\"$D\"}"
+    ;;
+  getFbPass)
+    P=$(uci get mediahub.@main[0].fbpass 2>/dev/null)
+    P=$(printf '%s' "$P" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    echo "{\"pass\":\"$P\"}"
+    ;;
+  apply)
+    /usr/libexec/mediahub/apply.sh
+    ;;
+  applydry)
+    /usr/libexec/mediahub/apply.sh --dry-run
+    ;;
+  rescan)
+    curl -s -m 60 http://127.0.0.1/rescan 2>/dev/null || echo '{"ok":false,"error":"rescan 失败"}'
+    ;;
+  clearCache)
+    /usr/libexec/mediahub/clear-cache.sh
+    ;;
+  testConn)
+    M=$(curl -s -o /dev/null -w '%{http_code}' -m 15 'http://127.0.0.1/mikan-p/Home/Bangumi?year=2026' -H 'User-Agent: Mozilla/5.0' 2>/dev/null)
+    B=$(curl -s -o /dev/null -w '%{http_code}' -m 15 'http://127.0.0.1/bgm/v0/subjects/622206' -H 'User-Agent: media-hub/1.0' 2>/dev/null)
+    L=$(curl -s -o /dev/null -w '%{http_code}' -m 10 'http://127.0.0.1/lain/pic/cover/m/6a/b3/622206_dpWcC.jpg' 2>/dev/null)
+    echo "{\"ok\":true,\"mikan\":\"$M\",\"bgm\":\"$B\",\"lain\":\"$L\"}"
+    ;;
+  logTail)
+    echo -n '{"ok":true,"log":"'
+    tail -n 20 /var/log/nginx/error.log 2>/dev/null | sed 's/\\/\\\\/g; s/"/\\"/g; s/</\\u003c/g; s/>/\\u003e/g' | tr '\n' ' ' | sed 's/"/\\"/g'
+    echo '"}'
+    ;;
+  *)
+    echo '{"ok":false,"error":"unknown action"}'
+    ;;
+esac
+exit 0

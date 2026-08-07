@@ -1,0 +1,1 @@
+location = /videos.html { return 301 /anime.html; }

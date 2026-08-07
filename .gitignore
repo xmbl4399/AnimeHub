@@ -1,0 +1,19 @@
+# 敏感/本机专用,不发布
+services/
+windows/
+pkg/
+pkg2/
+*.ipk.bak
+
+# 临时文件
+vids.json
+st.json
+s*.json
+applydry.json
+bgm-yan.json
+mksearch.html
+*.log
+
+# git
+.DS_Store
+*.swp

@@ -1,0 +1,5 @@
+# mediahub 控制页 API 反代:LuCI 页面同源 https 调 /mediahub-api -> uhttpd cgi-bin(仅 127.0.0.1)
+location = /mediahub-api {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/mediahub-api;
+    proxy_read_timeout 90s;
+}

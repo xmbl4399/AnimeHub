@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+<meta charset=utf-8>
+<title>番剧库</title>
+<script>if(window.self===window.top)location.replace('/hub.html?v=anime');</script>
+<meta name=viewport content='width=device-width,initial-scale=1'>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#24292e;min-height:100vh}
+.crumb{max-width:1600px;margin:14px auto 0;padding:0 20px;display:flex;align-items:center;gap:2px;flex-wrap:wrap;font-size:14px}
+.crumb .cb{color:#58a6ff;text-decoration:none;padding:4px 7px;border-radius:6px;cursor:pointer;border:none;background:none;font-size:14px}
+.crumb .cb:hover{background:#e3edfb}
+.crumb .sep{color:#b0b8c4;padding:0 2px}
+.crumb .cur{color:#e6edf3;font-weight:600;padding:4px 7px}
+.wrap{max-width:1600px;margin:0 auto;padding:14px 20px 40px}
+.back-btn{background:#2d333b;border:1px solid #444c56;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;margin-bottom:10px;color:#e6edf3}
+.back-btn:hover{background:#343b44}
+.ep-row{display:flex;align-items:center;gap:10px;background:#2d333b;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);flex-wrap:wrap}
+.ep-row .epl{font-size:12px;color:#58a6ff;background:#e8f0fe;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.ep-row .emn{flex:1;min-width:0;font-size:13px;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ep-row .esz{font-size:12px;color:#8b949e;white-space:nowrap}
+.ep-row .ops{display:flex;gap:6px;flex-shrink:0;margin-left:auto}
+.list{background:#2d333b;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden}
+.anime-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;padding:4px 2px}
+.acard{background:#2d333b;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.acard:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.aposter{aspect-ratio:3/4;background:#30363d;position:relative}
+.aposter img{width:100%;height:100%;object-fit:cover;display:block}
+.aposter .tags{position:absolute;top:6px;left:6px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;pointer-events:none;z-index:2}
+.aposter .tags span{background:rgba(0,0,0,.6);color:#fff;font-size:10px;padding:1px 7px;border-radius:999px}
+.aposter .ms{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#ffd54f;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;pointer-events:none;z-index:2}
+.aposter .me{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:2px 7px;border-radius:999px;pointer-events:none;z-index:2}
+.aph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:#b6c0cc}
+.atitle{font-size:12.5px;color:#e6edf3;padding:8px 10px 2px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+@media (max-width:640px){.anime-grid{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:10px}}
+.row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #f2f2f2;cursor:pointer;flex-wrap:wrap}
+.row:last-child{border-bottom:none}
+.row:hover{background:#343b44}
+.row .ic{width:24px;text-align:center;font-size:16px;flex-shrink:0}
+.row .nm{flex:1;min-width:0;font-size:13.5px;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .cnt{font-size:11.5px;color:#8b949e;background:#f1f3f6;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.row .sz{font-size:12px;color:#8b949e;width:82px;text-align:right;white-space:nowrap}
+.row .ops{display:flex;gap:6px;flex-shrink:0}
+/* 手机窄屏:名称完整换行,元信息+操作按钮换到第二行 */
+@media (max-width:640px){
+  .row{padding:10px 12px;row-gap:4px;column-gap:8px}
+  .row .ic{display:none}
+  .row .nm{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere;line-height:1.45;font-size:13px}
+  .row .cnt{font-size:10.5px;padding:2px 8px}
+  .row .sz{width:auto;text-align:left}
+  .row .ops{margin-left:auto}
+  .ep-row{padding:10px 12px;row-gap:6px;column-gap:8px}
+  .ep-row .emn{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere;line-height:1.5;font-size:12.5px}
+  .ep-row .esz{margin-left:auto}
+}
+.op{font-size:12px;padding:5px 11px;border-radius:7px;text-decoration:none;cursor:pointer;border:none}
+.op-del{background:#ff5252;color:#fff}
+.op-arm{background:#c93a3a!important;transform:scale(1.06)}
+.op:hover{filter:brightness(1.08)}
+.fab{position:fixed;right:22px;bottom:96px;width:52px;height:52px;border-radius:50%;background:#58a6ff;color:#fff;font-size:22px;line-height:1;border:none;box-shadow:0 4px 12px rgba(0,0,0,.25);cursor:pointer;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:hover{background:#1557b0;transform:scale(1.06)}
+.fab:active{transform:scale(.94)}
+.fab.op-arm{background:#c93a3a!important;font-size:12px;font-weight:600}
+.divider{height:1px;background:#eef0f3;margin:3px 0}
+.empty{text-align:center;color:#999;padding:50px 0;font-size:14px}
+#player{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+#player .overlay{position:absolute;inset:0;background:rgba(0,0,0,.82)}
+#player .frame{position:relative;width:min(960px,96vw);background:#111;border-radius:12px;overflow:hidden}
+.vwrap{position:relative;width:100%}
+#player .bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a1d23;color:#eee}
+#player .bar .pt{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pClose{background:transparent;border:1px solid #f85149;color:#f85149;font-size:15px;width:28px;height:28px;border-radius:50%;line-height:1;cursor:pointer;flex-shrink:0}
+#pClose:hover{background:#f85149;color:#fff}
+#player video{width:100%;max-height:72vh;display:block;background:#000}
+</style>
+</head>
+<body>
+<div class=crumb id=crumb></div>
+<div class=wrap>
+  <div class=list id=list></div>
+  <div id=animeView style='display:none'></div>
+  <div class=empty id=empty style='display:none'>当前目录没有视频</div>
+</div>
+<button class=fab id=rsBtn title=刷新><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
+<div id=player>
+  <div class=overlay onclick=closePlayer()></div>
+  <div class=frame>
+    <div class=bar><span class=pt id=pTitle></span><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
+    <div class=vwrap><video id=pv controls autoplay></video></div>
+  </div>
+</div>
+<script>
+const enc=p=>p.split('/').map(encodeURIComponent).join('/');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const isVideo=n=>/\.(mp4|mkv|webm|avi|mov|ts|flv|m4v)$/i.test(n);
+const fmtSize=s=>s>=1073741824?(s/1073741824).toFixed(1)+' GB':s>=1048576?(s/1048576).toFixed(1)+' MB':s>=1024?(s/1024).toFixed(0)+' KB':s+' B';
+let vids=[];
+function loadList(){fetch('/videos.json?t='+Date.now()).then(r=>r.json()).then(fs=>{vids=fs;renderAnime();}).catch(()=>document.getElementById('empty').style.display='block');}
+loadList();
+function play(row,url){
+  const nm=row.querySelector('.nm').textContent;
+  document.getElementById('pTitle').textContent=nm;
+  document.getElementById('pv').src='/media/'+url;
+  document.getElementById('player').style.display='flex';
+}
+function closePlayer(){const pv=document.getElementById('pv');pv.pause();pv.src='';document.getElementById('player').style.display='none';}
+// 文件名 → 番名+集数(借鉴 AutoBangumi 解析思路:去字幕组块/集数/质量块)
+function parseAnime(name){
+  let s=name.replace(/\.[^.]+$/,'');
+  s=s.replace(/\([0-9A-Fa-f]{8,}\)\s*$/,'');
+  let ep=null;
+  const m1=s.match(/S\d{1,2}E(\d{1,2})/i);
+  if(m1)ep=+m1[1];
+  else{const m2=s.match(/[\[-](\d{1,2})[\])-]/)||s.match(/-\s*(\d{1,2})\s*\[/);if(m2&&+m2[1]>0&&+m2[1]<=99)ep=+m2[1];}
+  const parts=s.split(/(\[[^\]]*\])/g).filter(Boolean);
+  const outside=parts.filter(p=>!p.startsWith('['));
+  const blocks=parts.filter(p=>p.startsWith('[')).map(b=>b.slice(1,-1));
+  let kw;
+  if(outside.length){
+    kw=outside.join(' ');
+    kw=kw.replace(/\(([^)]*)\)/g,(mm,inner)=>/CR|WEB|AVC|HEVC|1080|720|480|MKV|MP4|AAC|X26|H26|10BIT|8BIT/i.test(inner)?' ':mm);
+  }else{
+    const QUAL=/^(webrip|web_dl|web|hdtv|bd|dvd|bluray|hevc|avc|hevc_aac|avc_aac|h264_aac|x264|x265|h264|h265|hevc_10bit|hevc10bit|10bit|1080p|720p|480p|2160p|4k|8bit|aac|flac|opus|av1|av1_opus|gb_cn|gb|cn|chs|cht|jp|sc|tc|sc_tc|chs_cht|chs_jp|cht_jp|chs_cht_jp|简日|繁日|简繁|内嵌|简体内嵌|pgs|ass|sub|v\d+)$/i;
+    kw=blocks.slice(1).filter(b=>!QUAL.test(b.replace(/\s/g,''))&&!/^\d{3,4}$/.test(b)&&!/^\d{1,2}$/.test(b)).join(' ');
+  }
+  kw=kw.replace(/S\d{1,2}E\d{1,2}/i,' ');
+  kw=kw.replace(/[-_\s]+\d{1,2}\s*$/,'');
+  kw=kw.replace(/^\d{1,2}\s*[-_\s]+/,'');
+  kw=kw.replace(/[-_.]{2,}/g,' ').replace(/\s+-\s+/g,' ').replace(/\s+/g,' ').replace(/[\s\-_.]+$/,'').replace(/^[\s\-_.]+/,'').trim();
+  if(!kw)kw='(其他)';
+  return {title:kw,ep};
+}
+// ==== 番剧视图(按番名分组) ====
+let expandedAnime=null;
+function copyLink(vp,btn){
+  const ta=document.createElement('textarea');
+  ta.value=vp;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  let ok=false;
+  try{ok=document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+  const old=btn.textContent;
+  btn.textContent=ok?'✓ 已复制':'失败';
+  setTimeout(()=>btn.textContent=old,2000);
+}
+/* 已删除复制链接功能 */
+function armDel(btn,fn,msg){
+  if(btn.dataset.arm!=='1'){
+    btn.dataset.arm='1';
+    const old=btn.innerHTML;
+    btn.innerHTML=msg||'确认?';
+    btn.classList.add('op-arm');
+    clearTimeout(btn._t);
+    btn._t=setTimeout(()=>{btn.dataset.arm='';btn.innerHTML=old;btn.classList.remove('op-arm');},3000);
+    return;
+  }
+  fn();
+}
+function refreshAfterDel(){fetch('/rescan',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&j.ok)loadList();}).catch(()=>{});}
+const FAB_SVG='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>';
+document.getElementById('rsBtn').onclick=function(){
+  const b=this;
+  armDel(b,()=>{
+    b.innerHTML='…';
+    // 先重扫 videos.json(新下载的文件才会进列表),再清 bgm 缓存重新刮削
+    fetch('/rescan',{cache:'no-store'}).then(r=>r.json()).then(j=>{
+      let n=0;
+      try{const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('anm:v8:')===0)keys.push(k);}keys.forEach(k=>localStorage.removeItem(k));n=keys.length;}catch(e){}
+      loadList();
+      b.innerHTML='✓';
+      setTimeout(()=>{b.innerHTML=FAB_SVG;},1600);
+    }).catch(()=>{b.innerHTML='!';setTimeout(()=>{b.innerHTML=FAB_SVG;},1600);});
+  },'刷新?');
+};
+function delFile(btn,name){
+  armDel(btn,()=>{
+    fetch('/del?path='+enc(name)).then(res=>res.json()).then(j=>{
+      if(j&&j.ok){
+        vids=vids.filter(x=>x.name!==name);
+        renderAnime();
+        refreshAfterDel();
+      }else alert('删除失败: '+(j&&j.error||'未知错误'));
+    }).catch(err=>alert('删除失败: '+err));
+  });
+}
+// 轻量番剧名刮削:bgm 搜索拿中文/官方名(7 天缓存,不取封面)
+const NAME_ALIAS={
+  CONAN:'名侦探柯南',
+  'ONAJI ZEMI':'同一个研讨会的染谷同学是AV女优的事',
+  TENKOUSAKI:'転校先の清楚可憐な美少女'
+};
+const GENRES=/^(冒险|恋爱|奇幻|科幻|喜剧|搞笑|日常|校园|悬疑|推理|治愈|致郁|热血|战斗|动作|恐怖|惊悚|剧情|催泪|百合|后宫|魔法|异世界|穿越|重生|机战|机甲|运动|体育|音乐|偶像|美食|侦探|历史|战争|生存|猎奇|黑暗|纯爱|励志|家庭|职场|玄幻|仙侠|武侠|修真|赛博朋克|末日|单元剧|长篇|泡面番|卖肉|子供向|少女向|少年向|青年向|年番|子供番|少儿|兽人|猫娘|伪娘|病娇|腹黑|傲娇|萝莉|正太|萌系|废萌|虐心|多角恋|逆后宫|血腥|智斗|群像|公路片|轮回|时间旅行|太空|宇宙|AI|虚拟世界|游戏|电子游戏|吸血鬼|僵尸|恶魔|天使|忍者|武士|警察|犯罪|刑事|律师|医疗|科学|考古|探险|Action|Adventure|Comedy|Drama|Fantasy|Sci-Fi|Romance|Slice of Life|School|Mystery|Thriller|Horror|Supernatural|Magic|Mecha|Sports|Music|Food|Historical|Psychological|Yuri|BL|Harem|Ecchi|Isekai|Space|Cyberpunk|Detective|Crime|Military|Martial Arts|Ninja|Samurai|Parody|Time Travel|Vampire|Zombie)$/i;
+
+// 按 bgm id 拉详情+集数,存 localStorage,返回 meta(搜索命中/hint/蜜柑兑底共用)
+async function fetchBgmMeta(bgmId,key){
+  try{
+    const d=await fetch('/bgm/v0/subjects/'+bgmId);
+    if(d.ok){const dj=await d.json();
+      if(!dj||(!dj.name_cn&&!dj.name))return null; // 无效条目(占位/已删),让调用方走蜜柑兜底
+      const name=(dj.name_cn||'').trim()||(dj.name||'').trim();
+      const img=(dj.images&&dj.images.medium)?dj.images.medium.replace(/^http:/,'https:').replace(/^https:\/\/lain\.bgm\.tv/,'/lain'):'';
+      let score='',eps='',tags=[],updated='';
+      score=dj.rating&&dj.rating.score?String(dj.rating.score):'';eps=dj.total_episodes&&dj.total_episodes>0?dj.total_episodes:'';tags=(dj.tags||[]).filter(t=>GENRES.test(t.name)).slice(0,2).map(t=>t.name);
+      try{
+        const er=await fetch('/bgm/v0/episodes?subject_id='+bgmId+'&limit=100');
+        if(er.ok){const ej=await er.json();if(ej.data&&ej.data.length){const d2=new Date();const today=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');const upd=ej.data.filter(e=>e.airdate&&e.airdate<=today).length;updated=upd>0?upd:'';}}
+      }catch(e){}
+      const meta={name,img,score,eps,updated,tags,ts:Date.now()};
+      try{if(key)localStorage.setItem(key,JSON.stringify(meta));}catch(e){}
+      return meta;
+    }
+  }catch(e){}
+  return null;
+}
+async function getAnimeMeta(title,hint){
+  const key='anm:v8:'+title;
+  try{const c=localStorage.getItem(key);if(c){const o=JSON.parse(c);if(Date.now()-o.ts<7*864e5)return o;}}catch(e){}
+  // 有 mikan 下载索引(bgm id)时直接拉详情,不做文件名搜索匹配
+  if(hint&&hint.bgm){const m=await fetchBgmMeta(hint.bgm,key);if(m)return m;}
+  const up=title.toUpperCase();
+  let alias='';
+  for(const k in NAME_ALIAS)if(up===k||up.startsWith(k)){alias=NAME_ALIAS[k];break;}
+  const variants=[alias||'',title,title.replace(/_/g,' '),title.replace(/_/g,' ').replace(/\s*S\d{1,2}\s*$/i,'')];
+  for(const v of [...new Set(variants)]){
+    if(!v)continue;
+    try{
+      const r=await fetch('/bgm/search/subject/'+encodeURIComponent(v)+'?type=2');
+      if(!r.ok)continue;
+      const j=await r.json();
+      if(j.list&&j.list.length){
+        const m=await fetchBgmMeta(j.list[0].id,key);
+        if(m)return m;
+      }
+    }catch(e){}
+  }
+  // 蜜柑搜索兑底:bgm 搜索对繁简体/书名号不友好(「」直接 404),蜜柑模糊搜索能命中,再经蜜柑详情页拿 bgm id
+  try{
+    const sr=await fetch('/mikan-p/Home/Search?searchstr='+encodeURIComponent(title));
+    if(sr.ok){
+      const sh=await sr.text();
+      const mm=sh.match(/\/Home\/Bangumi\/(\d+)/);
+      if(mm){
+        // 从搜索页提取该番封面+番名(与 id 匹配)
+        let mkImg='',mkName='';
+        try{
+          const sd=new DOMParser().parseFromString(sh,'text/html');
+          const card=[...sd.querySelectorAll('a[href^="/Home/Bangumi/"]')].find(a=>(a.getAttribute('href')||'').split('/').pop()===mm[1]);
+          if(card){const sp=card.querySelector('span[data-src]');if(sp)mkImg=sp.getAttribute('data-src')||'';}
+          const at=sd.querySelector('.an-text');
+          if(at)mkName=at.getAttribute('title')||at.textContent.trim();
+        }catch(e){}
+        const dr=await fetch('/mikan-p/Home/Bangumi/'+mm[1]);
+        if(dr.ok){
+          const dh=await dr.text();
+          const bm=dh.match(/bgm\.tv\/subject\/(\d+)/);
+          if(bm){const m=await fetchBgmMeta(bm[1],key);if(m)return m;}
+        }
+        // bgm 链接无效(蜜柑挂的旧链接/条目已删)→ 蜜柑封面+番名兑底(至少出封面)
+        const mkUrl=u=>u?u.replace(/^https?:\/\/mikanani\.me/,'/mikan-p'):'';
+        const meta={name:mkName,img:mkUrl(mkImg),score:'',eps:'',updated:'',tags:[],ts:Date.now()};
+        try{localStorage.setItem(key,JSON.stringify(meta));}catch(e){}
+        return meta;
+      }
+    }
+  }catch(e){}
+  return {name:'',img:'',score:'',eps:'',updated:'',tags:[]};
+}
+function findDlMap(items){
+  for(const it of items){
+    const n=it.name.split('/').pop();
+    try{const c=localStorage.getItem('dlmap:'+n);if(c){const o=JSON.parse(c);if(o.bgm)return o;}}catch(e){}
+  }
+  return null;
+}
+function renderAnime(){
+  document.getElementById('animeView').style.display='block';
+  document.getElementById('list').style.display='none';
+  document.getElementById('empty').style.display='none';
+  const box=document.getElementById('animeView');
+  const groups=new Map();
+  vids.forEach(v=>{
+    if(!v.name.startsWith('Aria2/')||!isVideo(v.name))return;
+    const p=parseAnime(v.name.split('/').pop());
+    const key=p.title||'(其他)';
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push({ep:p.ep,base:v.name.split('/').pop(),name:v.name,size:v.size});
+  });
+  if(expandedAnime){
+    const items=groups.get(expandedAnime)||[];
+    box.innerHTML='';
+    const back=document.createElement('button');back.className='back-btn';back.textContent='‹ 返回番剧列表';back.onclick=()=>{expandedAnime=null;renderAnime();};
+    box.appendChild(back);
+    items.sort((a,b)=>(a.ep||999)-(b.ep||999)).forEach(it=>{
+      const r=document.createElement('div');r.className='ep-row';
+      r.innerHTML='<span class=epl></span><span class=emn></span><span class=esz></span><span class=ops><button class="op op-del">🗑</button></span>';
+      r.querySelector('.epl').textContent=it.ep?('第'+it.ep+'集'):'单集';
+      r.querySelector('.emn').textContent=it.base;
+      r.querySelector('.esz').textContent=fmtSize(it.size);
+      const u=enc(it.name);
+      r.querySelector('.emn').onclick=e=>{e.stopPropagation();play({querySelector:()=>({textContent:it.base})},u);};
+      r.querySelector('.emn').style.cursor='pointer';
+      r.querySelector('.op-del').onclick=e=>{e.stopPropagation();delFile(e.currentTarget,it.name);};
+      box.appendChild(r);
+    });
+    return;
+  }
+  box.innerHTML='';
+  const grid=document.createElement('div');grid.className='anime-grid';
+  [...groups.keys()].sort((a,b)=>a.localeCompare(b)).forEach(t=>{
+    const items=groups.get(t);
+    const r=document.createElement('div');r.className='acard';
+    r.innerHTML='<div class=aposter><span class=aph>📺</span><span class=tags></span><span class=ms></span><span class=me></span></div><div class=atitle></div>';
+    r.querySelector('.atitle').textContent=t;
+    r.querySelector('.me').textContent=items.length+' 集';
+    r.onclick=()=>{expandedAnime=t;renderAnime();};
+    getAnimeMeta(t,findDlMap(items)).then(m=>{
+      if(m.name)r.querySelector('.atitle').textContent=m.name;
+      if(m.img)r.querySelector('.aph').innerHTML='<img src="'+m.img.replace(/&/g,'&amp;')+'" loading="lazy" onerror="this.parentNode.innerHTML=\'🎬\'">';
+      if(m.score)r.querySelector('.ms').textContent='⭐'+m.score;
+      if(m.tags&&m.tags.length){const box=r.querySelector('.tags');box.innerHTML='';m.tags.forEach(tg=>{const s=document.createElement('span');s.textContent=tg;box.appendChild(s);});}
+      r.querySelector('.me').textContent=items.length+(m.eps?('/'+m.eps):'')+' 集'+(m.updated&&(!m.eps||m.updated!=m.eps)?' ·更至'+m.updated:'');
+    });
+    grid.appendChild(r);
+  });
+  box.appendChild(grid);
+}
+
+</script>
+</body>
+</html>

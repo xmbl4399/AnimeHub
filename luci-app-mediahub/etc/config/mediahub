@@ -1,0 +1,5 @@
+config main 'main'
+	option enabled '1'
+	option dir '/mnt/mmcblk0p7/Aria2'
+	option root '/mnt/mmcblk0p7'
+	option fbpass 'admin'

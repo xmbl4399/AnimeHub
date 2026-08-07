@@ -1,0 +1,11 @@
+# 视频库清理:Aria2 缓存清理按钮 -> uhttpd CGI(仅 127.0.0.1)
+location = /cleanup {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/cleanup;
+    proxy_read_timeout 60s;
+}
+
+# 视频库删除文件(替代 WebDAV DELETE,GoWebDAV 已停用)
+location = /del {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/del;
+    proxy_read_timeout 60s;
+}

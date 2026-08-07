@@ -1,0 +1,3 @@
+location = /hub.html {
+    add_header Cache-Control "no-store";
+}

@@ -1,0 +1,5 @@
+# 视频库手动刷新:前端"刷新库"按钮 -> uhttpd CGI(仅 127.0.0.1)
+location = /rescan {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/rescan;
+    proxy_read_timeout 60s;
+}

@@ -1,0 +1,101 @@
+# 蜜柑数据反代:供轻量页面同源调用(季度列表/详情/搜索RSS/torrent)
+# 分级缓存策略:
+#   - 番剧元数据(星期分组/主页/详情/搜索):首播后基本不变 → 长缓存(12h/1h)
+#   - 集数表/RSS(新集更新):短缓存 5m(兜底)
+#   - torrent 直链:不缓存(链接/文件可能更新)
+# 正则 location 的 proxy_pass 不能带 URI 部分,统一用捕获组 $1 剥 /mikan-p/ 前缀
+location /mikan-p/ {
+    proxy_pass https://mikanani.me/;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_ssl_server_name on;
+    # 蜜柑把 /Home/Bangumi 302 到 Location:/(相对根路径),反代后浏览器会跟随到错误位置(nginx 首页)
+    # 统一改写:任何 302 的 / 都指回反代前缀 /mikan-p/(即蜜柑首页=季度页)
+    proxy_redirect / /mikan-p/;
+    # 兜底缓存:动态数据(集数表 ExpandEpisodeTable / RSS / 未知接口)5 分钟
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 5m;
+    proxy_cache_key $uri$is_args$args;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+    client_max_body_size 0;
+}
+
+# ---- 分级:静态元数据(首播后不变)长缓存 ----
+# 星期分组列表 + 主页(季度列表):12h
+location ~* ^/mikan-p/Home/(BangumiCoverFlowByDayOfWeek|Bangumi)$ {
+    proxy_pass https://mikanani.me/Home/$1$is_args$args;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_ssl_server_name on;
+    proxy_redirect / /mikan-p/;
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 12h;
+    proxy_cache_key $uri$is_args$args;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+}
+
+# 番剧详情页(简介/字幕组列表,偶有变动):1h
+location ~* ^/mikan-p/(Home/Bangumi/[0-9]+)$ {
+    proxy_pass https://mikanani.me/$1$is_args$args;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_ssl_server_name on;
+    proxy_redirect / /mikan-p/;
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 1h;
+    proxy_cache_key $uri$is_args$args;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+}
+
+# 搜索页(新番入库可接受延迟):1h
+location ~* ^/mikan-p/(Home/Search)$ {
+    proxy_pass https://mikanani.me/$1$is_args$args;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_ssl_server_name on;
+    proxy_redirect / /mikan-p/;
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 1h;
+    proxy_cache_key $uri$is_args$args;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+}
+
+# ---- torrent 直链:不缓存(链接/种子文件可能更新) ----
+location ~* ^/mikan-p/(Download/.*)$ {
+    proxy_pass https://mikanani.me/$1$is_args$args;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_ssl_server_name on;
+    proxy_redirect / /mikan-p/;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+    client_max_body_size 0;
+}
+
+# 追番页静态文件:禁用缓存(防止浏览器拿旧版页面,导致新功能"看不到")
+location /mikan/ {
+    root /www;
+    add_header Cache-Control "no-store";
+}

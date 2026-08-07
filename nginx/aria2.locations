@@ -1,0 +1,9 @@
+# aria2 JSON-RPC 同源反代(页面 https 下不能直接 fetch http://6800,混合内容被拦)
+location /aria2/ {
+    proxy_pass http://127.0.0.1:6800/;
+    proxy_set_header Host 127.0.0.1;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_http_version 1.1;
+    proxy_read_timeout 60s;
+    client_max_body_size 10m;
+}

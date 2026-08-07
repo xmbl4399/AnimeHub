@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+<meta charset=utf-8>
+<title>番剧库</title>
+<meta name=viewport content='width=device-width,initial-scale=1'>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f0f2f5;display:flex;flex-direction:column;min-height:100vh;overflow-y:auto}
+@media (max-width:900px){
+  body{padding-bottom:env(safe-area-inset-bottom,0px)}
+}
+header{background:linear-gradient(135deg,#1a73e8,#4a9bff);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+header h1{font-size:17px;font-weight:600;margin-right:auto}
+header h1 small{font-weight:400;opacity:.7;font-size:11px;margin-left:6px}
+.tabs{display:flex;gap:8px}
+.tab{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:999px;padding:6px 16px;font-size:13px;cursor:pointer;white-space:nowrap}
+.tab:hover{background:rgba(255,255,255,.28)}
+.tab.on{background:#fff;color:#1a73e8;font-weight:600}
+main{flex:1;display:flex;flex-direction:column}
+.view{display:none;height:100vh;height:100dvh;overflow:auto}
+.view.on{display:block}
+iframe{width:100%;height:100%;border:none;display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1>番剧库</h1>
+  <nav class=tabs>
+    <button class="tab on" data-v=anime>番剧</button>
+    <button class="tab" data-v=mikan>蜜柑</button>
+    <button class="tab" data-v=aria2>aria2</button>
+    <button class="tab" data-v=pan>网盘</button>
+    <button class="tab" data-v=fb>文件</button>
+  </nav>
+</header>
+<main>
+  <section class=view id=v-aria2><iframe data-src=/ariang/></iframe></section>
+  <section class=view id=v-mikan><iframe data-src=/mikan/></iframe></section>
+  <section class=view id=v-pan><iframe data-src=/pan/></iframe></section>
+  <section class=view id=v-fb><iframe data-src=/fb/></iframe></section>
+  <section class="view on" id=v-anime><iframe data-src=/anime.html></iframe></section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+function hideAriaNgLogo(){
+  const f=document.querySelector('#v-aria2 iframe');
+  if(!f||!f.contentDocument)return;
+  const hide=()=>{
+    try{
+      const doc=f.contentDocument;
+      if(doc.head&&!doc.head.querySelector('#hub-hide-logo')){
+        const s=document.createElement('style');
+        s.id='hub-hide-logo';
+        s.textContent='@media (max-width:767px){.logo{display:none!important}.task-table-title{display:none!important}}';
+        doc.head.appendChild(s);
+      }
+    }catch(e){}
+  };
+  hide();
+  let n=0;
+  const t=setInterval(()=>{hide();if(++n>4)clearInterval(t);},800);
+}
+function show(v){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.remove('on'));
+  const sec=$('#v-'+v);sec.classList.add('on');
+  const fr=sec.querySelector('iframe');
+  if(fr&&!fr.getAttribute('src')){
+    fr.setAttribute('src',fr.dataset.src);
+    if(v==='aria2')fr.addEventListener('load',hideAriaNgLogo);
+  }
+  if(v==='fb'){startFbAuthCheck();fbTryLogin().then(ok=>{if(ok)setTimeout(refreshFb,900);});}
+  // tab 状态写入 URL,刷新/分享可直达
+  try{history.replaceState(null,'','?v='+v);}catch(e){}
+}
+
+// FileBrowser 鉴权:默认 admin/admin 自动登录(成功免登录直接进),失败才留登录页;JWT 2h 到期后 401 也先自动重登
+let fbAuthTimer=null;
+function fbTryLogin(){
+  return fetch('/fb/api/users?id=self',{cache:'no-store'}).then(r=>{
+    if(r.status===200)return true;              // 已登录
+    if(r.status===401){
+      // 用番剧库设置里的 FileBrowser 密码自动登录(可配置,不再写死 admin)
+      return fetch('/mediahub-api?action=getFbPass',{cache:'no-store'})
+        .then(function(r){return r.json();}).then(function(j){return j.pass||'admin';})
+        .catch(function(){return 'admin';})
+        .then(function(pass){
+          return fetch('/fb/api/auth/login?username=admin',{
+            method:'POST',
+            headers:{'X-Password':encodeURIComponent(pass)},
+            cache:'no-store'
+          }).then(function(r){return r.ok;}).catch(function(){return false;});
+        });
+    }
+    return false;
+  }).catch(function(){return false;});
+}
+function refreshFb(){
+  const sec=document.querySelector('#v-fb');
+  const f=sec&&sec.querySelector('iframe');
+  if(f&&f.getAttribute('src')){
+    const s=f.src;
+    f.src='about:blank';
+    setTimeout(()=>{f.src=s;},300);
+  }
+}
+function startFbAuthCheck(){
+  if(fbAuthTimer)return;
+  fbAuthTimer=setInterval(()=>{
+    const sec=document.querySelector('#v-fb');
+    if(!sec||!sec.classList.contains('on'))return; // 仅在 fb tab 激活时探测
+    fetch('/fb/api/users?id=self',{cache:'no-store'}).then(r=>{
+      if(r.status===401){
+        // 先试自动登录(admin 密码未改时直接恢复),失败才刷新回登录页
+        fbTryLogin().then(ok=>{if(!ok)refreshFb();});
+      }
+    }).catch(()=>{});
+  },180000); // 3 分钟
+}
+// 检测 pan/fb 服务是否运行:反代 5xx(502 后端连不上)时隐藏对应 tab
+function hideDeadTabs(){
+  const hideTab=v=>{const t=document.querySelector('.tab[data-v="'+v+'"]');if(t)t.style.display='none';};
+  fetch('/pan/',{cache:'no-store'}).then(r=>{if(r.status>=500)hideTab('pan');}).catch(()=>hideTab('pan'));
+  fetch('/fb/api/users?id=self',{cache:'no-store'}).then(r=>{if(r.status>=500)hideTab('fb');}).catch(()=>hideTab('fb'));
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.v));
+hideDeadTabs();
+const want=new URLSearchParams(location.search).get('v');
+show(['anime','mikan','aria2','pan','fb'].includes(want)?want:'anime');
+</script>
+</body>
+</html>

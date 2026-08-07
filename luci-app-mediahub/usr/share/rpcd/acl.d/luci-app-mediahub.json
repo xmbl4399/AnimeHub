@@ -1,0 +1,13 @@
+{
+	"luci-app-mediahub": {
+		"read": {
+			"uci": [ "mediahub", "aria2" ],
+			"ubus": {
+				"luci": [ "getAll" ]
+			}
+		},
+		"write": {
+			"uci": [ "mediahub" ]
+		}
+	}
+}

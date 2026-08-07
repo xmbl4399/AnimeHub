@@ -1,0 +1,12 @@
+# 所有 HTML 页面:no-cache + ETag(304 revalidate),改完立即生效且不再每次全量下载
+location ~* \.html$ {
+    root /www;
+    add_header Cache-Control "no-cache";
+    try_files $uri =404;
+}
+
+# videos.json:每小时重扫生成,no-cache 让浏览器每次 revalidate(ETag 304)
+location = /videos.json {
+    root /www;
+    add_header Cache-Control "no-cache";
+}

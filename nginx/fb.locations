@@ -1,0 +1,22 @@
+# FileBrowser 反代(hub 文件 tab,https 同源)
+location /fb/ {
+    add_header Cache-Control "no-store";
+    proxy_pass http://127.0.0.1:8989;
+    proxy_set_header Host $host;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 3600s;
+    client_max_body_size 0;
+}
+
+# fb 静态资源:assets 目录文件带 hash 指纹 → immutable 长缓存(消除 no-store 导致 4.6MB JS 每次重下)
+location /fb/public/static/assets/ {
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    proxy_pass http://127.0.0.1:8989;
+    proxy_set_header Host $host;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}

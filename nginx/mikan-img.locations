@@ -1,0 +1,19 @@
+# 蜜柑封面图片:首次回源拉取,之后由 nginx 本地磁盘缓存直接返回
+# 正则 location 优先级高于 /mikan-p/ 前缀,仅命中图片扩展名(数据接口不受影响)
+# proxy_pass 用 $1 捕获组剥离 /mikan-p/ 前缀(不带 URI 会转发完整前缀导致 404)
+location ~* ^/mikan-p/(.*\.(jpg|jpeg|png|webp|avif|gif))$ {
+    proxy_pass https://mikanani.me/$1$is_args$args;
+    proxy_set_header Host mikanani.me;
+    proxy_set_header Referer https://mikanani.me/;
+    proxy_set_header User-Agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    proxy_ssl_server_name on;
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 30d;
+    proxy_cache_key $uri$is_args$args;
+    # 浏览器缓存 7 天:上游蜜柑自带 no-cache,no-store,必须去掉再加自己的(否则浏览器每次全量下载)
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "public, max-age=604800" always;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 30s;
+}
