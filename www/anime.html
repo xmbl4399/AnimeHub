@@ -14,10 +14,10 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 .crumb .sep{color:#b0b8c4;padding:0 2px}
 .crumb .cur{color:#e6edf3;font-weight:600;padding:4px 7px}
 .wrap{max-width:1600px;margin:0 auto;padding:14px 20px 40px}
-.back-btn{background:#2d333b;border:1px solid #444c56;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;margin-bottom:10px;color:#e6edf3}
-.back-btn:hover{background:#343b44}
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 16px;font-size:13px;color:#c9d1d9;cursor:pointer;margin-bottom:10px;transition:all .15s}
+.back-btn:hover{background:rgba(255,255,255,.12);color:#e6edf3}
 .ep-row{display:flex;align-items:center;gap:10px;background:#2d333b;border-radius:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);flex-wrap:wrap}
-.ep-row .epl{font-size:12px;color:#000;background:#e8f0fe;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.ep-row .epl{font-size:12px;color:#58a6ff;background:rgba(88,166,255,.15);border-radius:6px;padding:2px 8px;white-space:nowrap}
 .ep-row .emn{flex:1;min-width:0;font-size:13px;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ep-row .esz{font-size:12px;color:#8b949e;white-space:nowrap}
 .ep-row .ops{display:flex;gap:6px;flex-shrink:0;margin-left:auto}
@@ -54,9 +54,10 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
   .ep-row .emn{flex:1 1 100%;white-space:normal;overflow-wrap:anywhere;line-height:1.5;font-size:12.5px}
   .ep-row .esz{margin-left:auto}
 }
-.op{font-size:12px;padding:5px 11px;border-radius:7px;text-decoration:none;cursor:pointer;border:none}
-.op-del{background:#ff5252;color:#fff}
-.op-arm{background:#c93a3a!important;transform:scale(1.06)}
+.op{font-size:13px;padding:4px 10px;border-radius:7px;text-decoration:none;cursor:pointer;border:none;background:transparent;transition:all .15s}
+.op-del{color:#ff5252;background:rgba(255,82,82,.12)}
+.op-del:hover{color:#ff6b6b;background:rgba(255,107,107,.22)}
+.op-arm{color:#fff!important;background:#e5484d!important;transform:scale(1.06)}
 .op:hover{filter:brightness(1.08)}
 .fab{position:fixed;right:22px;bottom:96px;width:52px;height:52px;border-radius:50%;background:#58a6ff;color:#fff;font-size:22px;line-height:1;border:none;box-shadow:0 4px 12px rgba(0,0,0,.25);cursor:pointer;z-index:90;display:flex;align-items:center;justify-content:center;transition:transform .15s}
 .fab:hover{background:#1557b0;transform:scale(1.06)}
@@ -293,7 +294,7 @@ function renderAnime(){
     box.appendChild(back);
     items.sort((a,b)=>(a.ep||999)-(b.ep||999)).forEach(it=>{
       const r=document.createElement('div');r.className='ep-row';
-      r.innerHTML='<span class=epl></span><span class=emn></span><span class=esz></span><span class=ops><button class="op op-del">🗑</button></span>';
+      r.innerHTML='<span class=epl></span><span class=emn></span><span class=esz></span><span class=ops><button class="op op-del">✕</button></span>';
       r.querySelector('.epl').textContent=it.ep?('第'+it.ep+'集'):'单集';
       r.querySelector('.emn').textContent=it.base;
       r.querySelector('.esz').textContent=fmtSize(it.size);
