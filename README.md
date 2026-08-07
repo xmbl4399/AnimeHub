@@ -113,6 +113,12 @@ luci-app-mediahub/
 
 **坑**:uhttpd cgi 必须 `echo "Content-Type: application/json"` + 空行,否则 502 "did not produce any response";apply.sh 的 sed 用 `|` 分隔符(路径含 /),顺序先替换根再替换 Aria2 特例。
 
+## 截图
+
+![番剧库页面](screenshots/anime.jpg)
+![导航主页 hub](screenshots/hub.jpg)
+![LuCI 控制面板](screenshots/luci.jpg)
+
 ## 发布包(给小白)
 
 发布目录含 4 个文件(两个 ipk + 两个脚本),上传到路由器后执行:
