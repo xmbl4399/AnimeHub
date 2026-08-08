@@ -109,6 +109,16 @@ function doLogout(){
   fetch('/bili?action=logout',{cache:'no-store'}).then(()=>checkLogin()).catch(()=>checkLogin());
 }
 checkLogin();
+// 支持 ?kw= 参数:模拟从 mikan 卡片点击打开,自动搜索番剧名
+(function(){
+  const p=new URLSearchParams(location.search);
+  const kw=p.get('kw');
+  if(kw){
+    document.getElementById('q').value=kw;
+    L('URL 参数 kw =',kw);
+    doSearch();
+  }
+})();
 function doSearch(){
   const q=document.getElementById('q').value.trim();
   const box=document.getElementById('results');
