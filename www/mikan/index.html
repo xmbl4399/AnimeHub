@@ -442,19 +442,25 @@ async function ensureBili(){
   if(!biliLoaded){await loadScript('/lib/artplayer.js');await loadScript('/lib/artplayer-plugin-danmuku.js');biliLoaded=true;}
 }
 function biliLoginClose(){if(biliPollTimer)clearInterval(biliPollTimer);biliPollTimer=null;$('#biliLoginModal').style.display='none';}
-// 登录状态按钮:未登录显示「登录」,已登录显示昵称前4字
+// 登录状态按钮:未登录显示「登录」,已登录显示昵称(移动端最多5字,PC 完整)
 function biliLoginBtn(){
   const b=$('#biliLogin');
-  b.innerHTML='<span style="color:#fff;font-weight:700;font-size:'+(biliLoginStatus==='login'?'12':'13')+'px">'+(biliLoginStatus==='login'?biliNick:'登录')+'</span>';
+  let txt='登录';
+  if(biliLoginStatus==='login'){
+    const isMobile=window.matchMedia('(max-width:768px)').matches;
+    txt=isMobile?biliNick.slice(0,5):biliNick;
+  }
+  b.innerHTML='<span style="color:#fff;font-weight:700;font-size:'+(biliLoginStatus==='login'?'12':'13')+'px">'+txt+'</span>';
 }
 function checkBiliLogin(){
   fetch('/bili?action=login_status',{cache:'no-store'}).then(r=>r.json()).then(j=>{
     const d=j.data||{};
-    if(d.isLogin){biliLoginStatus='login';biliNick=(d.uname||'').slice(0,4);}
+    if(d.isLogin){biliLoginStatus='login';biliNick=(d.uname||'')||'';}
     else{biliLoginStatus='guest';biliNick='';}
     biliLoginBtn();
   }).catch(()=>{biliLoginStatus='guest';biliNick='';biliLoginBtn();});
 }
+try{window.matchMedia('(max-width:768px)').addEventListener('change',()=>biliLoginBtn());}catch(e){}
 function biliLoginClick(){
   if(biliLoginStatus==='login'){
     if(confirm('退出 B 站登录?')){
