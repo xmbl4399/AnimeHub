@@ -55,5 +55,26 @@ if [ $DRY -eq 0 ]; then
   /etc/init.d/aria2 restart 2>/dev/null || true
 fi
 
+# --- 6. 服务主开关:enabled=0 停用页面反代+定时重扫;=1 恢复(OpenClash 式即点即生效) ---
+EN=$(uci get mediahub.@main[0].enabled 2>/dev/null)
+[ -z "$EN" ] && EN=1
+MH_LOCS="media bili bili-stream anime-redirect bgm mikan-proxy mikan-img hub-cache cleanup rescan video-del list prune"
+if [ $DRY -eq 0 ]; then
+  if [ "$EN" = "0" ]; then
+    crontab -l 2>/dev/null | sed 's|^\(.*video_scan\.sh.*\)$|#\1|' | crontab -
+    for L in $MH_LOCS; do
+      [ -f /etc/nginx/conf.d/$L.locations ] && mv /etc/nginx/conf.d/$L.locations /etc/nginx/conf.d/$L.locations.off
+    done
+  else
+    crontab -l 2>/dev/null | sed 's|^#\(.*video_scan\.sh.*\)$|\1|' | crontab -
+    for L in $MH_LOCS; do
+      [ -f /etc/nginx/conf.d/$L.locations.off ] && mv /etc/nginx/conf.d/$L.locations.off /etc/nginx/conf.d/$L.locations
+    done
+  fi
+  if nginx -t -c /etc/nginx/uci.conf >/dev/null 2>&1; then
+    /etc/init.d/nginx reload 2>/dev/null || true
+  fi
+fi
+
 [ $DRY -eq 0 ] && echo '{"ok":true,"applied":true}'
 exit 0

@@ -15,14 +15,11 @@ return view.extend({
 		s.anonymous = true;
 		s.addremove = false;
 
-		var o = s.option(form.Flag, 'enabled', _('服务主开关'), _('关闭后停用页面反代与定时重扫(点击「立即应用」生效)'));
-		o.rmempty = false;
-
-		o = s.option(form.Value, 'dir', _('aria2 下载目录'), _('默认 /mnt/mmcblk0p7/public/Downloads/Aria2;改这里并应用会同步到 aria2、扫描脚本、nginx 与删除接口'));
+		var o = s.option(form.Value, 'dir', _('aria2 下载目录'), _('默认 /mnt/mmcblk0p7/public/Downloads/Aria2;改这里并应用会同步到 aria2、扫描脚本、nginx 与删除接口'));
 		o.rmempty = false;
 		o.optional = false;
 
-		o = s.option(form.Value, 'root', _('媒体根目录'), _('videos.json 扫描根与 /media/ 反代的 alias 根(如 /mnt/mmcblk0p7)'));
+		o = s.option(form.Value, 'root', _('存储分区目录'), _('媒体存储分区的挂载点(如 /mnt/mmcblk0p7),番剧扫描/网页播放/删除都基于它;一般不用改,换存储盘时才动'));
 		o.rmempty = false;
 		o.optional = false;
 
@@ -94,6 +91,14 @@ return view.extend({
 		};
 
 		var panel = E('div', { 'class': 'cbi-section', 'id': 'mh-panel', 'style': 'margin-top:12px' }, [
+			// 服务主开关(OpenClash 风格:点即开/关,无提示)
+			E('div', { 'class': 'cbi-section-node', 'style': 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #2a3140' }, [
+				E('div', {}, [
+					E('div', { 'style': 'font-weight:600;font-size:14px' }, _('服务主开关')),
+					E('div', { 'style': 'color:#888;font-size:12px' }, _('关闭后停用页面反代与定时重扫;点击开关立即生效'))
+				]),
+				E('button', { 'class': 'btn cbi-button', 'id': 'mh-toggle', 'type': 'button', 'style': 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center' }, '…')
+			]),
 			E('h3', { 'class': 'cbi-section-title' }, _('状态与操作')),
 			status,
 			E('div', { 'class': 'cbi-section-node', 'style': 'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0' }, [
@@ -102,19 +107,43 @@ return view.extend({
 			out
 		]);
 
+		// 主开关状态与点击切换(即点即生效,不依赖保存/应用)
+		var togBtn = null;
+		var updateToggle = function (en) {
+			if (!togBtn) togBtn = document.getElementById('mh-toggle');
+			if (!togBtn) return;
+			if (en == 1) {
+				togBtn.textContent = '● 运行中(点击关闭)';
+				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;background:#1b5e20;color:#fff;border:1px solid #2e7d32';
+			} else {
+				togBtn.textContent = '● 已停止(点击开启)';
+				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;background:#b71c1c;color:#fff;border:1px solid #c62828';
+			}
+		};
+		var togglePending = false;
+		togBtn = E('button');  // 占位,事件绑定在渲染后
+		var bindToggle = function () {
+			togBtn = document.getElementById('mh-toggle');
+			if (!togBtn || togBtn._bound) return;
+			togBtn._bound = true;
+			togBtn.onclick = function () {
+				if (togglePending) return;
+				togglePending = true;
+				var cur = (document.getElementById('mh-cur-en') && document.getElementById('mh-cur-en').value === '1') ? 1 : 0;
+				api('toggle&enabled=' + (cur ? 0 : 1)).then(function (j) {
+					togglePending = false;
+					updateToggle(j.enabled);
+					// 刷新状态栏
+					api('getStatus').then(function (s2) {
+						if (s2.ok && document.getElementById('mh-cur-en')) document.getElementById('mh-cur-en').value = s2.enabled;
+					});
+				}).catch(function () { togglePending = false; });
+			};
+		};
+
 		return m.render().then(function (html) {
 			html.appendChild(panel);
-			// 「服务主开关」行右侧加"打开主页"按钮(新标签打开 hub)
-			var enRow = html.querySelector('div[data-name="enabled"] .cbi-value-field');
-			if (enRow) {
-				enRow.appendChild(E('a', {
-					'class': 'btn cbi-button cbi-button-action',
-					'href': '/hub.html',
-					'target': '_blank',
-					'rel': 'noopener noreferrer',
-					'style': 'margin-left:10px;vertical-align:middle'
-				}, _('打开主页')));
-			}
+			bindToggle();
 			// 状态加载(节点已挂到 html,可直接操作)
 			api('getStatus').then(function (j) {
 				if (!j.ok) { status.textContent = _('状态获取失败: ') + (j.error || ''); return; }
@@ -123,7 +152,11 @@ return view.extend({
 					'&nbsp; FileBrowser: <span style="color:' + (j.fb < 500 ? '#3ecf8e' : '#ff6b6b') + '">HTTP ' + j.fb + '</span>' +
 					'&nbsp; 网盘: <span style="color:' + (j.pan < 500 ? '#3ecf8e' : '#ff6b6b') + '">HTTP ' + j.pan + '</span>' +
 					'&nbsp; B站: <span id="mh-bili">检查中...</span>' +
-					'<br>' + _('主开关') + ': ' + (j.enabled == 1 ? _('开') : _('关')) + ' | ' + _('下载目录') + ': <code>' + j.dir + '</code> | ' + _('媒体根') + ': <code>' + j.root + '</code>';
+					'<br>' + _('下载目录') + ': <code>' + j.dir + '</code> | ' + _('媒体根') + ': <code>' + j.root + '</code>';
+				updateToggle(j.enabled);
+				var hc = document.createElement('input');
+				hc.type = 'hidden'; hc.id = 'mh-cur-en'; hc.value = j.enabled;
+				html.appendChild(hc);
 				loadBiliStatus();
 			});
 			return html;

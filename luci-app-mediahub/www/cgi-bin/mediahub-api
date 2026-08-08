@@ -5,6 +5,7 @@
 echo "Content-Type: application/json"
 echo ""
 A=$(echo "$QUERY_STRING" | sed -n 's/.*action=\([^&]*\).*/\1/p')
+q() { printf '%s' "$QUERY_STRING" | tr '&' '\n' | grep "^$1=" | head -1 | cut -d= -f2-; }
 case "$A" in
   getStatus)
     A2=$(pgrep -f aria2c >/dev/null && echo 1 || echo 0)
@@ -35,6 +36,13 @@ case "$A" in
   biliLogout)
     rm -f /etc/bili-login.txt /tmp/bili-cookie.txt /tmp/bili-cook.txt
     echo '{"ok":true}'
+    ;;
+  toggle)
+    E=$(q enabled)
+    [ "$E" = "0" ] || [ "$E" = "1" ] || E=1
+    uci set mediahub.@main[0].enabled=$E && uci commit mediahub
+    /usr/libexec/mediahub/apply.sh >/dev/null 2>&1
+    echo "{\"ok\":true,\"enabled\":$E}"
     ;;
   apply)
     /usr/libexec/mediahub/apply.sh
