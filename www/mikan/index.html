@@ -97,6 +97,14 @@ h1 b{color:var(--acc)}
 .art-controls-right{flex-shrink:0;margin-left:auto}
 /* 弹幕按钮组移入控制条右侧后:取消插件默认 width:100%/height:32px,按内容收缩,防占满整行 */
 .art-controls-right .artplayer-plugin-danmuku{width:auto!important;height:auto!important;justify-content:flex-end;gap:6px;margin-left:6px}
+/* 弹幕设置/样式面板:缩小至80%(320→256px)+右对齐向左展开,移动端不溢出 */
+.artplayer-plugin-danmuku .apd-config .apd-config-panel,
+.artplayer-plugin-danmuku .apd-style .apd-style-panel{
+  left:auto!important;
+  right:0!important;
+  width:min(256px,80vw)!important;
+  padding:8px!important;
+}
 </style>
 </head>
 <body>
