@@ -679,6 +679,8 @@ async function biliPlay(){
     if(!list.length){blog('全部变体失败 lastErr='+lastErr);throw new Error(lastErr||'搜索返回空,稍后重试');}
     const v=biliPick(list);
     curBvid=v.bvid;
+    // 缓存 番名→B站资源 供 anime 页复用(anime 播本地文件时直接取,不再重复搜索串季)
+    try{localStorage.setItem('mk:bili:'+name,JSON.stringify({bvid:v.bvid,title:v.title.replace(/<\/?em[^>]*>/g,''),time:Date.now()}));}catch(e){}
     blog('biliPlay 选中='+v.title.replace(/<\/?em[^>]*>/g,''),'bvid='+v.bvid);
     $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
     renderBiliResults(list,true);  // 渲染结果列表,默认收起(展开按钮显示)

@@ -373,8 +373,17 @@ function dmFromVideo(v,ep){
 function loadBiliDm(title,ep){
   const t0=performance.now();
   dmSt('B站匹配中(最长16秒)...');
-  console.log('[DM] 搜索发起: kw='+dmSearchTitle(title),'ep='+ep);
-  fetch('/bili?action=search&kw='+encodeURIComponent(dmSearchTitle(title)),{cache:'no-store'})
+  // 先查 mikan 映射缓存(番名→B站资源):mikan 已匹配好的直接用,不重复搜索(避免串季/串番)
+  const kw=dmSearchTitle(title);
+  let cached=null;
+  try{cached=JSON.parse(localStorage.getItem('mk:bili:'+kw)||'null');}catch(e){}
+  if(cached&&cached.bvid){
+    console.log('[DM] 命中 mikan 缓存: '+kw+' → '+cached.bvid+' | '+(cached.title||'').slice(0,40));
+    dmSt('B站:'+kw);
+    return dmFromVideo({bvid:cached.bvid,title:cached.title||kw},ep);
+  }
+  console.log('[DM] 搜索发起: kw='+kw,'ep='+ep);
+  fetch('/bili?action=search&kw='+encodeURIComponent(kw),{cache:'no-store'})
     .then(r=>{
       console.log('[DM] 搜索响应: HTTP '+r.status,'耗时='+Math.round(performance.now()-t0)+'ms','ct='+(r.headers.get('content-type')||''));
       if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控拦截');
