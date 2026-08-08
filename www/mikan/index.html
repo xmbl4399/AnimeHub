@@ -751,7 +751,7 @@ async function biliPlayVideo(v,page,cid){
     container:$('#biliBox'),
     url:'/bili-stream2?bvid='+v.bvid+'&cid='+c,
     autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',  // 自动播放(用户点卡片展开有手势,浏览器放行)
-    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,10],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
+    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
   // 弹幕按钮组移入控制条右侧(全屏按钮左侧):用 MutationObserver 在插件按钮组一出现就立刻移动,
   // 不等 ready(视频加载期间就在正确位置,不会先显示默认位置再跳变)
