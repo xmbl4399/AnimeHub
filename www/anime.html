@@ -128,7 +128,7 @@ function createPlayer(url,danmu,opts){
     container:document.getElementById('artContainer'),
     url:url,
     autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
-    plugins:[ArtplayerPluginDanmuku({
+    plugins:[artplayerPluginDanmuku({
       danmuku:()=>Promise.resolve(danmu||[]),
       speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false
     })]
