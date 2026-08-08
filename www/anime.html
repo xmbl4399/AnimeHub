@@ -70,13 +70,15 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 #player{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
 #player .overlay{position:absolute;inset:0;background:rgba(0,0,0,.82)}
 #player .frame{position:relative;width:min(960px,96vw);background:#111;border-radius:12px;overflow:hidden}
+/* PC 端适配:播放器不占满屏幕,限宽 760px 居中 */
+@media(min-width:769px){#player .frame{width:min(760px,88vw)}}
 .vwrap{position:relative;width:100%}
 #player .bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a1d23;color:#eee}
 #player .bar .pt{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pClose{background:transparent;border:1px solid #f85149;color:#f85149;font-size:15px;width:28px;height:28px;border-radius:50%;line-height:1;cursor:pointer;flex-shrink:0}
 #pClose:hover{background:#f85149;color:#fff}
 #player .vwrap{position:relative}
-#player #artContainer{width:100%;height:min(540px,54vw,72vh);max-height:72vh;background:#000}
+#player #artContainer{width:100%;height:auto;aspect-ratio:16/9;max-height:75vh;background:#000}
 #subLoading{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#ffd54f;font-size:15px;padding:10px 18px;border-radius:8px;z-index:900;display:none;pointer-events:none;text-align:center}
 #dmReBtn{position:absolute;top:10px;right:10px;z-index:950;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer}
 #dmReBtn:hover{border-color:#ffd700}
