@@ -110,13 +110,14 @@ async function fetchText(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)t
 const GENRES=/^(冒险|恋爱|奇幻|科幻|喜剧|搞笑|日常|校园|悬疑|推理|治愈|致郁|热血|战斗|动作|恐怖|惊悚|剧情|催泪|百合|后宫|魔法|异世界|穿越|重生|机战|机甲|运动|体育|音乐|偶像|美食|侦探|历史|战争|生存|猎奇|黑暗|纯爱|励志|家庭|职场|玄幻|仙侠|武侠|修真|赛博朋克|末日|单元剧|长篇|泡面番|卖肉|子供向|少女向|少年向|青年向|年番|子供番|少儿|兽人|猫娘|伪娘|病娇|腹黑|傲娇|萝莉|正太|萌系|废萌|虐心|多角恋|逆后宫|血腥|智斗|群像|公路片|轮回|时间旅行|太空|宇宙|AI|虚拟世界|游戏|电子游戏|吸血鬼|僵尸|恶魔|天使|忍者|武士|警察|犯罪|刑事|律师|医疗|科学|考古|探险|Action|Adventure|Comedy|Drama|Fantasy|Sci-Fi|Romance|Slice of Life|School|Mystery|Thriller|Horror|Supernatural|Magic|Mecha|Sports|Music|Food|Historical|Psychological|Yuri|BL|Harem|Ecchi|Isekai|Space|Cyberpunk|Detective|Crime|Military|Martial Arts|Ninja|Samurai|Parody|Time Travel|Vampire|Zombie)$/i;
 let scoreQueue=0,scoreMax=6;
 function loadMeta(id,card){
-  const key='mk:meta7:'+id;
+  const key='mk:meta8:'+id;
   const apply=m=>{
     if(m.score)card.querySelector('.score').textContent='⭐'+m.score;
     if(m.eps||m.updated){const t=m.eps,u=m.updated;card.querySelector('.eps').textContent=(u&&t&&u!=t)?(u+'/'+t+' 集'):((t||u)+' 集');}
     if(m.tags&&m.tags.length){const box=card.querySelector('.tags');box.innerHTML='';m.tags.forEach(t=>{const s=document.createElement('span');s.textContent=t;box.appendChild(s);});}
   };
-  try{const c=localStorage.getItem(key);if(c){const o=JSON.parse(c);if(Date.now()-o.ts<864e5){apply(o);return;}}}catch(e){}
+  // 全空缓存视为无效(刮削失败的空 meta 不信任),直接重新拉
+  try{const c=localStorage.getItem(key);if(c){const o=JSON.parse(c);if(Date.now()-o.ts<864e5&&(o.score||o.eps||o.updated||(o.tags&&o.tags.length))){apply(o);return;}}}catch(e){}
   const run=async()=>{
     try{
       const d=await fetchText(PROXY+'/Home/Bangumi/'+id);
@@ -128,7 +129,8 @@ function loadMeta(id,card){
         const er=await fetch('/bgm/v0/episodes?subject_id='+m[1]+'&limit=100');
         if(er.ok){const ej=await er.json();if(ej.data&&ej.data.length){const d=new Date();const today=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');const upd=ej.data.filter(e=>e.airdate&&e.airdate<=today).length;meta.updated=upd>0?upd:'';}}
       }
-      try{localStorage.setItem(key,JSON.stringify(Object.assign({ts:Date.now()},meta)));}catch(e){}
+      // 全空不写缓存(避免刮削失败的空 meta 污染 1 天)
+      if(meta.score||meta.eps||meta.tags.length||meta.updated){try{localStorage.setItem(key,JSON.stringify(Object.assign({ts:Date.now()},meta)));}catch(e){}}
       apply(meta);
     }catch(e){}
     scoreQueue--;
