@@ -444,7 +444,7 @@ function toast(msg,cls){const t=$('#toast');t.textContent=msg;t.className=cls;t.
 
 function showSeason(){$('#stat').style.display='';$('#season').style.display='';$('#searchGrid').style.display='none';$('#list').style.display='none';if(seasonCache)seasonStat();else loadSeason();}
 function showSearch(){$('#stat').style.display='';$('#season').style.display='none';$('#searchGrid').style.display='';$('#list').style.display='none';}
-function showDetail(){$('#season').style.display='none';$('#searchGrid').style.display='none';$('#list').style.display='block';}
+function showDetail(){$('#season').style.display='none';$('#searchGrid').style.display='none';$('#list').style.display='block';window.scrollTo(0,0);}
 function closeDetail(){
   biliClose();  // 销毁 B 站播放器,停止播放
   lastFrom==='search'?showSearch():showSeason();
