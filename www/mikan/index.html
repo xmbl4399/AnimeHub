@@ -22,6 +22,8 @@ h1 b{color:var(--acc)}
 .search-panel button{background:var(--acc);border:none;color:#fff;border-radius:8px;padding:9px 18px;cursor:pointer;font-size:14px;flex-shrink:0}
 #stat{font-size:11.5px;color:var(--mut);padding:10px 14px 0}
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.list-head .aitags{display:flex;gap:4px;flex-wrap:wrap;margin-left:4px;font-size:10px}
+.list-head .aitags span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 6px;font-size:10px;color:var(--mut)}
 #listTitle{font-size:13px;color:var(--mut);word-break:break-all}
 .list-x{background:transparent;border:1px solid var(--err);color:var(--err);font-size:16px;width:28px;height:28px;border-radius:50%;line-height:1;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .list-x:hover{background:var(--err);color:#fff}
@@ -367,6 +369,9 @@ function renderInfo(meta){
     ai.innerHTML=html;
     if(meta.desc){const de=ai.querySelector('.aidesc');de.textContent=meta.desc;de.onclick=()=>de.classList.toggle('open');}
     ai.style.display='';
+    // 信息 tags(放送/开始等)移到标题 #listTitle 后面
+    const tg=ai.querySelector('.aitags');
+    if(tg)$('#listTitle').insertAdjacentElement('afterend',tg);
   }else{ai.style.display='none';}
 }
 
