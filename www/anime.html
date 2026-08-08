@@ -358,10 +358,8 @@ function dmFromVideo(v,ep){
     return true;
   });
 }
-function loadBiliDm(title,ep,deadline){
-  const end=deadline||(Date.now()+16000);
-  if(Date.now()>end){dmBtnLabel('B站匹配失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);return;}
-  dmBtnLabel('B站匹配中...');
+function loadBiliDm(title,ep){
+  dmBtnLabel('B站匹配中(最长16秒)...');
   fetch('/bili?action=search&kw='+encodeURIComponent(dmSearchTitle(title)),{cache:'no-store'})
     .then(r=>{
       if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控拦截');
@@ -378,10 +376,7 @@ function loadBiliDm(title,ep,deadline){
       return dmFromVideo(v,ep);
     }).then(ok=>{
       if(ok===false||ok===null){dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
-    }).catch(()=>{
-      // 网络/风控假失败:3 秒后重试,保持匹配中,直到 16s 时间窗结束才报失败
-      setTimeout(()=>loadBiliDm(title,ep,end),3000);
-    });
+    }).catch(()=>{dmBtnLabel('B站匹配失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);});
 }
 
 function parseAnime(name){
