@@ -65,6 +65,8 @@ h1 b{color:var(--acc)}
 .card img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:#30363d}
 .card .tt{padding:8px 8px 2px;font-size:12.5px;line-height:1.4;min-height:52px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 #list{display:none;margin:10px 14px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+/* PC 端适配:详情卡片限宽 960px 居中,播放器不占满屏幕 */
+@media(min-width:769px){#list{margin:10px auto 0;max-width:960px;width:calc(100% - 28px)}}
 .row{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:none}
 #listBody{display:flex;flex-direction:column}
