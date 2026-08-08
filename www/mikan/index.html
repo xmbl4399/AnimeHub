@@ -616,9 +616,10 @@ function biliToggle(){
   tg.textContent=on?'展开':'收起';
 }
 // 智能匹配:核心串匹配 + 4字窗口兼容变体/简称,合集/第1话优先,滤 OP/解说;播放/弹幕高权重
+// 同音异字归一:菈→拉(「再见菈菈」vs「再见拉拉」),否则变体项全被滤掉只剩严格同名项
 function biliPick(list){
   const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
-  const strip=s=>s.replace(/[^\u4e00-\u9fa5]/g,'').replace(/[篇季話话集]/g,'');
+  const strip=s=>s.replace(/[^\u4e00-\u9fa5]/g,'').replace(/[篇季話话集]/g,'').replace(/[菈]/g,'拉');
   const k=strip(curName||'');
   const wins=[];
   for(let i=0;i+4<=k.length;i++)wins.push(k.slice(i,i+4));
