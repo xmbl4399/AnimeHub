@@ -91,6 +91,11 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 #dmResults .dm-item:hover{background:#2a3140;border-color:#ffd700}
 #dmResults .dm-item .c{color:#999;font-size:11px;margin-left:8px}
 #dmResults .dm-empty{color:#999;font-size:12px;padding:6px 2px}
+#dmResults .dm-item.open{border-color:#ffd700}
+#dmResults .dm-pages{margin:4px 0 2px 14px;padding-left:10px;border-left:2px solid #3a4250;display:flex;flex-direction:column;gap:2px;max-height:200px;overflow:auto}
+#dmResults .dm-page{padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:#d6dde6}
+#dmResults .dm-page:hover{background:#2a3140;color:#ffd700}
+#dmResults .dm-page .c{color:#999;margin-left:6px}
 </style>
 </head>
 <body>
@@ -217,18 +222,49 @@ function dmDoSearch(){
         const t=v.title.replace(/<\/?em[^>]*>/g,'');
         const d=document.createElement('div');d.className='dm-item';
         d.innerHTML='<span>'+esc(t)+'</span><span class=c>'+esc(v.author)+' · '+v.danmaku+'弹</span>';
-        d.onclick=()=>dmPickBili(v);
+        d.onclick=()=>dmExpandPages(v,d);
         box.appendChild(d);
       });
     }).catch(()=>{box.innerHTML='<div class=dm-empty>搜索失败</div>';});
 }
-function dmPickBili(v){
+// 点击视频 → 展开分P 列表选集(再点收起)
+function dmExpandPages(v,item){
+  const sub=item.querySelector('.dm-pages');
+  if(sub){sub.remove();item.classList.remove('open');return;}
+  item.classList.add('open');
+  const box=document.createElement('div');box.className='dm-pages';
+  box.innerHTML='<div class=dm-empty>加载分P...</div>';
+  item.appendChild(box);
+  fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    const pages=j.data||[];
+    if(!pages.length){box.innerHTML='<div class=dm-empty>无分P</div>';return;}
+    const cur=(parseAnime(document.getElementById('pTitle').textContent)||{}).ep;
+    const idx=matchPart(pages,cur);
+    box.innerHTML='';
+    pages.forEach((p,i)=>{
+      const pd=document.createElement('div');pd.className='dm-page';
+      pd.innerHTML='<span>'+(i+1)+'P</span><span class=c>'+esc(p.part||'')+((i===idx)?' ✓':'')+'</span>';
+      pd.onclick=e=>{e.stopPropagation();dmPickPage(v,p);};
+      box.appendChild(pd);
+    });
+  }).catch(()=>{box.innerHTML='<div class=dm-empty>分P 加载失败</div>';});
+}
+function dmPickPage(v,p){
   dmList=[];dmTitle=v.title.replace(/<\/?em[^>]*>/g,'');
   closeDmMatch();
   dmBtnLabel('B站加载中...');
-  const ep=(parseAnime(document.getElementById('pTitle').textContent)||{}).ep;
-  dmFromVideo(v,ep).then(ok=>{
-    if(ok===false){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,2500);}
+  fetch('/bili?action=dm&cid='+p.cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
+    if(!xml||xml.indexOf('<d')<0){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,2500);return;}
+    const doc=new DOMParser().parseFromString(xml,'text/xml');
+    const ds=doc.querySelectorAll('d[p]');
+    dmList=[];
+    ds.forEach(d=>{
+      const pp=d.getAttribute('p').split(',');
+      const m=+pp[1]||1;const col=+pp[3]||16777215;
+      dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+pp[0]||0});
+    });
+    dmBtnLabel('B站:'+dmList.length);
+    if(dmOn&&dmList.length)rebuildPlayer();
   }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,2500);});
 }
 function dmShowEps(a){
