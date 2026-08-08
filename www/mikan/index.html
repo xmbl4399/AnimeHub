@@ -74,6 +74,13 @@ h1 b{color:var(--acc)}
 .dl.dl-done{transform:scale(1.2);box-shadow:0 0 0 3px rgba(255,255,255,.35);background:var(--acc);color:#fff}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1c2126;border:1px solid var(--line);border-radius:10px;padding:10px 18px;font-size:13px;display:none;z-index:99;max-width:90vw}
 #toast.ok{border-color:var(--ok)}#toast.err{border-color:var(--err)}
+.bili-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.15)}
+.bili-play{background:#00aeec;border:none;color:#fff;font-weight:700;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;transition:transform .15s}
+.bili-play:active{transform:scale(.95)}
+.bili-hint{font-size:11px;color:var(--mut)}
+.bili-head{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
+.bili-x{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:2px 9px;cursor:pointer;font-size:12px;flex-shrink:0}
+#biliArea{padding:0 14px 6px;border-bottom:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -91,6 +98,15 @@ h1 b{color:var(--acc)}
 <div id="searchGrid" style="display:none"></div>
 <div id="list">
   <div class="list-head"><span id="listTitle"></span><button class="list-x" onclick="closeDetail()" title="关闭">✕</button></div>
+  <div class="bili-bar">
+    <button class="bili-play" onclick="biliPlay()">▶ B 站直接播放</button>
+    <span class="bili-hint">在线看番(带弹幕),需已登录 B 站</span>
+  </div>
+  <div id="biliArea" style="display:none">
+    <div class="bili-head"><span id="biliTitle" style="flex:1;font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button class="bili-x" onclick="biliClose()">✕</button></div>
+    <div id="biliBox" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px"></div>
+    <div id="biliPages" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+  </div>
   <div id="anInfo" style="display:none"></div>
   <div id="listBody"></div>
 </div>
@@ -233,6 +249,7 @@ function renderSeason(){
 // 点卡片:按字幕组归档(详情页→组列表→每组 ExpandEpisodeTable 拉全部集数)
 async function doExpand(id,name,from){
   lastFrom=from||'season';
+  curName=name;  // B 站直接播放用
   $('#stat').style.display='';
   $('#stat').textContent='正在加载「'+name+'」…';
   try{
@@ -392,6 +409,94 @@ function showSeason(){$('#stat').style.display='';$('#season').style.display='';
 function showSearch(){$('#stat').style.display='';$('#season').style.display='none';$('#searchGrid').style.display='';$('#list').style.display='none';}
 function showDetail(){$('#season').style.display='none';$('#searchGrid').style.display='none';$('#list').style.display='block';}
 function closeDetail(){lastFrom==='search'?showSearch():showSeason();}
+
+// ===== B 站直接播放(内嵌,整合自 bilipanel)=====
+let curName='';
+let biliArt=null,biliLoaded=false;
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('脚本加载失败 '+src));document.head.appendChild(s);});}
+async function ensureBili(){
+  if(!biliLoaded){await loadScript('/lib/artplayer.js');await loadScript('/lib/artplayer-plugin-danmuku.js');biliLoaded=true;}
+}
+function biliClose(){
+  $('#biliArea').style.display='none';
+  if(biliArt){biliArt.destroy();biliArt=null;}
+  $('#biliPages').innerHTML='';
+}
+// 智能匹配:标题含番名 + 合集/第1话优先,滤 OP/解说(与 bilipanel 同规则)
+function biliPick(list){
+  const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
+  const k=(curName||'').toLowerCase();
+  let best=null,bs=-1;
+  (list||[]).slice(0,15).forEach(x=>{
+    const t=clean(x.title),tn=t.toLowerCase();
+    if(!tn.includes(k))return;
+    let s=50;
+    if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))s+=100;
+    if(/第\s*1\s*[话集話]|第0?1话|\[01\]|\(01\)|\b01\b/.test(t))s+=30;
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))s-=70;
+    s+=Math.log10((x.play||0)+10)*8;
+    if(s>bs){bs=s;best=x;}
+  });
+  return best||(list||[])[0];
+}
+async function biliPlay(){
+  const name=curName;
+  if(!name){toast('未获取到番剧名','err');return;}
+  $('#biliTitle').textContent='B 站搜索:'+name;
+  $('#biliArea').style.display='block';
+  try{await ensureBili();}catch(e){toast(e.message,'err');return;}
+  try{
+    const r=await fetch('/bili?action=search&kw='+encodeURIComponent(name),{cache:'no-store'});
+    if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('搜索被风控,稍后重试');
+    const j=await r.json();
+    const list=(j.data&&j.data.result)||[];
+    if(!list.length)throw new Error('B 站无结果');
+    const v=biliPick(list);
+    $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
+    biliPlayVideo(v,1,null);
+  }catch(e){toast('B 站播放失败: '+e.message,'err');}
+}
+async function biliPlayVideo(v,page,cid){
+  page=page||1;
+  let c=cid;
+  if(!c){
+    try{
+      const r=await fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'});
+      const j=await r.json();
+      const pages=j.data||[];
+      biliRenderPages(v,pages);
+      if(!pages.length)throw new Error('无分P');
+      c=pages[Math.min(page-1,pages.length-1)].cid;
+    }catch(e){toast('分P加载失败: '+e.message,'err');return;}
+  }
+  let danmu=[];
+  try{
+    const x=await (await fetch('/bili?action=dm&cid='+c,{cache:'no-store'})).text();
+    danmu=[...x.matchAll(/<d p="([^"]*)">([^<]*)<\/d>/g)].map(m=>{
+      const a=m[1].split(',');
+      const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
+      return {time:+a[0]||0,text:m[2],color,mode:a[1]==4?1:a[1]==5?2:0};
+    });
+  }catch(e){}
+  if(biliArt){biliArt.destroy();biliArt=null;}
+  biliArt=new Artplayer({
+    container:$('#biliBox'),
+    url:'/bili-stream2?bvid='+v.bvid+'&cid='+c,
+    autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
+    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
+  });
+  biliArt.on('error',e=>toast('播放错误: '+((e&&e.message)||'未知'),'err'));
+}
+function biliRenderPages(v,pages){
+  const box=$('#biliPages');box.innerHTML='';
+  pages.forEach((p,i)=>{
+    const b=document.createElement('button');
+    b.textContent=(i+1)+' '+(p.part||'');
+    b.style.cssText='padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:#d6dde6;font-size:12px;cursor:pointer';
+    b.onclick=()=>{[...box.children].forEach(x=>x.style.borderColor='var(--line)');b.style.borderColor='#ffd700';biliPlayVideo(v,i+1,p.cid);};
+    box.appendChild(b);
+  });
+}
 
 init();
 </script>
