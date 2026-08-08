@@ -28,6 +28,8 @@ BV=$(q bvid)
 PG=$(q page)
 CID=$(q cid)
 QKEY=$(q qrcode_key)
+QN=$(q qn)
+[ -z "$QN" ] && QN=80
 [ -z "$PG" ] && PG=1
 # wbi 签名(nav 接口拿 img/sub key → mixin → md5);playurl 必须带 wbi 否则流地址无效
 wbi_sign() {
@@ -140,7 +142,7 @@ case "$A" in
     fi
     # 参数按 key 排序(bvid<cid<fnval<qn)供 wbi 签名;fmt=mp4 → fnval=0(durl 单文件),默认 dash
     FMT=$(q fmt)
-    if [ "$FMT" = "mp4" ]; then QS="bvid=$BV&cid=$CID&fnval=0&qn=64"; else QS="bvid=$BV&cid=$CID&fnval=16&qn=64"; fi
+    if [ "$FMT" = "mp4" ]; then QS="bvid=$BV&cid=$CID&fnval=0&qn=$QN"; else QS="bvid=$BV&cid=$CID&fnval=16&qn=$QN"; fi
     SIGNED=$(wbi_sign "$QS")
     echo "Content-Type: application/json; charset=utf-8"
     echo ""
@@ -168,7 +170,7 @@ case "$A" in
       echo "Content-Type: text/plain"; echo "Status: 404 Not Found"; echo ""; echo "no cid"; exit 1
     fi
     # playurl(登录态 + wbi)拿 durl 直链 → curl 伪造 bilibili Referer 流式转发
-    QS="bvid=$BV&cid=$CID&fnval=0&qn=64"
+    QS="bvid=$BV&cid=$CID&fnval=0&qn=$QN"
     SIGNED=$(wbi_sign "$QS")
     PR=$(curl -s --compressed -m 10 "https://api.bilibili.com/x/player/playurl?$SIGNED" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB" -c "$JAR")
     U=$(printf '%s' "$PR" | grep -oE '"url":"[^"]*' | head -1 | sed 's/"url":"//; s/\\u0026/\&/g')
