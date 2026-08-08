@@ -109,16 +109,67 @@ function doLogout(){
   fetch('/bili?action=logout',{cache:'no-store'}).then(()=>checkLogin()).catch(()=>checkLogin());
 }
 checkLogin();
-// 支持 ?kw= 参数:模拟从 mikan 卡片点击打开,自动搜索番剧名
+// 支持 ?kw= 参数:模拟从 mikan 卡片点击打开,自动搜索 + 智能匹配 + 自动播放
 (function(){
   const p=new URLSearchParams(location.search);
   const kw=p.get('kw');
   if(kw){
     document.getElementById('q').value=kw;
     L('URL 参数 kw =',kw);
-    doSearch();
+    autoSearchAndPlay(kw);
   }
 })();
+function renderResults(list){
+  const box=document.getElementById('results');
+  if(!list.length){box.innerHTML='<div class=st>无结果(风控或确实无)</div>';return;}
+  box.innerHTML='';
+  list.slice(0,15).forEach(v=>{
+    const d=document.createElement('div');d.className='vitem';
+    const t=v.title.replace(/<\/?em[^>]*>/g,'');
+    const isCollection=/全\d+[话集話]|全集|合集|1-\d/.test(t);
+    d.innerHTML='<div class=info><div class=t>'+esc(t)+'</div>'+
+      '<div class=m><span>▶ '+fmt(v.play)+'</span><span>弹 <b>'+fmt(v.danmaku)+'</b></span><span>⏱ '+esc(v.duration)+'</span><span>'+esc(v.author)+'</span>'+(isCollection?'<span style="color:#ffd700">合集</span>':'')+'</div></div>';
+    d.onclick=()=>openPlayer(v);
+    box.appendChild(d);
+  });
+}
+// 智能匹配:标题含番名 + 合集/第1话优先,滤掉 OP/MAD/解说等非正片
+function pickBest(list,kw){
+  const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
+  const k=kw.toLowerCase();
+  let best=null,bestScore=-1;
+  list.slice(0,15).forEach(v=>{
+    const t=clean(v.title),tn=t.toLowerCase();
+    if(!tn.includes(k))return;                       // 标题不含番名:跳过(滤掉无关番)
+    let score=50;                                     // 含番名基础分
+    if(/全\d+[话集話]|全集|合集/.test(t))score+=100;  // 合集大分
+    if(/第\s*1\s*[话集話]|第0?1话|\[01\]|\(01\)|\b01\b/.test(t))score+=30;  // 含第1话/01
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))score-=70; // 非正片减分
+    score+=Math.log10((v.play||0)+10)*5;              // 播放量少量加权
+    if(score>bestScore){bestScore=score;best=v;}
+  });
+  return best||list[0];
+}
+function autoSearchAndPlay(kw){
+  const box=document.getElementById('results');
+  box.innerHTML='<div class=st>搜索中...</div>';
+  box.style.display='block';
+  document.getElementById('tgBtn').textContent='收起';
+  fetch('/bili?action=search&kw='+encodeURIComponent(kw),{cache:'no-store'})
+    .then(r=>{if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控');return r.json();})
+    .then(j=>{
+      const list=(j.data&&j.data.result)||[];
+      L('自动搜索 结果数 =',list.length);
+      renderResults(list);
+      if(!list.length){box.innerHTML='<div class=st>无结果(风控或确实无)</div>';return;}
+      const v=pickBest(list,kw);
+      L('自动播放 选中 =',v.title.replace(/<\/?em[^>]*>/g,''));
+      openPlayer(v);
+    }).catch(e=>{
+      L('自动搜索失败 =',e.message);
+      box.innerHTML='<div class=st>自动搜索失败: '+esc(e.message)+'</div>';
+    });
+}
 function doSearch(){
   const q=document.getElementById('q').value.trim();
   const box=document.getElementById('results');
@@ -129,19 +180,7 @@ function doSearch(){
   fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
     .then(r=>{if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控');return r.json();})
     .then(j=>{
-      const list=(j.data&&j.data.result)||[];
-      if(!list.length){box.innerHTML='<div class=st>无结果(风控或确实无)</div>';return;}
-      box.innerHTML='';
-      list.slice(0,15).forEach(v=>{
-        const d=document.createElement('div');d.className='vitem';
-        const pic=v.pic?('https:'+v.pic):'';
-        const t=v.title.replace(/<\/?em[^>]*>/g,'');
-        const isCollection=/全\d+[话集話]|全集|合集|1-\d/.test(t);
-        d.innerHTML='<div class=info><div class=t>'+esc(t)+'</div>'+
-          '<div class=m><span>▶ '+fmt(v.play)+'</span><span>弹 <b>'+fmt(v.danmaku)+'</b></span><span>⏱ '+esc(v.duration)+'</span><span>'+esc(v.author)+'</span>'+(isCollection?'<span style="color:#ffd700">合集</span>':'')+'</div></div>';
-        d.onclick=()=>openPlayer(v);
-        box.appendChild(d);
-      });
+      renderResults((j.data&&j.data.result)||[]);
     }).catch(e=>{box.innerHTML='<div class=st>搜索失败: '+esc(e.message)+'</div>';});
 }
 // ===== 自播播放器(ArtPlayer + B站流)=====
