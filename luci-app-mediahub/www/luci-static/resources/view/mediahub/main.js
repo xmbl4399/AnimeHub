@@ -15,7 +15,7 @@ return view.extend({
 		s.anonymous = true;
 		s.addremove = false;
 
-		var o = s.option(form.Value, 'dir', _('aria2 下载目录'), _('默认 /mnt/mmcblk0p7/public/Downloads/Aria2;改这里并应用会同步到 aria2、扫描脚本、nginx 与删除接口'));
+		var o = s.option(form.Value, 'dir', _('Aria2 下载目录'), _('默认 /mnt/mmcblk0p7/public/Downloads/Aria2;改这里并应用会同步到 aria2、扫描脚本、nginx 与删除接口'));
 		o.rmempty = false;
 		o.optional = false;
 
