@@ -136,6 +136,19 @@ function doSearch(){
 // ===== 自播播放器(ArtPlayer + B站流)=====
 let biliArt=null;
 function L(){const a=['[BILI]'].concat([].slice.call(arguments));console.log.apply(console,a);}
+function probeStream(u){
+  L('PROBE 开始',u);
+  fetch(u,{headers:{Range:'bytes=0-1023'},cache:'no-store'}).then(async r=>{
+    const ct=r.headers.get('content-type')||'?';
+    const cl=r.headers.get('content-length')||'?';
+    const cr=r.headers.get('content-range')||'?';
+    const buf=await r.arrayBuffer();
+    let hex='';
+    const b=new Uint8Array(buf);
+    for(let i=0;i<Math.min(16,b.length);i++)hex+=((b[i]||0)).toString(16).padStart(2,'0')+' ';
+    L('PROBE status='+r.status,'type='+ct,'len='+cl,'range='+cr,'body='+buf.byteLength+'B','head16='+hex);
+  }).catch(e=>L('PROBE error =',e.message));
+}
 function playBili(v,page,cid){
   L('playBili',v.bvid,'page',page,'cid',cid||'');
   document.getElementById('playerArea').style.display='block';
@@ -153,6 +166,7 @@ function playBili(v,page,cid){
     document.getElementById('st').textContent='获取播放流(stream)...';
     const u='/bili-stream2?bvid='+v.bvid+'&cid='+c;
     L('stream url =',u);
+    probeStream(u);
     if(biliArt){biliArt.destroy();biliArt=null;}
     L('创建 ArtPlayer,url =',u);
     biliArt=new Artplayer({
@@ -167,7 +181,12 @@ function playBili(v,page,cid){
     });
     biliArt.on('ready',()=>L('ArtPlayer ready,duration =',biliArt.duration));
     biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
-    biliArt.on('video:error',(e)=>L('video:error =',e&&e.message||e));
+    ['loadedmetadata','canplay','playing','waiting','stalled','suspend','emptied','abort','error'].forEach(ev=>{
+      biliArt.on('video:'+ev,(e)=>{
+        const v=biliArt.video;
+        L('EVT video:'+ev,'rs='+v.readyState,'ns='+v.networkState,ev==='error'?(v.error?('code='+v.error.code+' msg='+v.error.message):'no error obj'):'');
+      });
+    });
     return loadBiliDanmu(c);
   }).catch(e=>{
     L('ERROR =',e.message);
@@ -185,8 +204,11 @@ function loadBiliDanmu(cid){
       const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
       return {time:+a[0]||0,text:x[2],color:color,mode:a[1]==4?1:a[1]==5?2:0};
     });
-    try{biliArt.plugin.danmuku.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
-    catch(e){L('弹幕 load 失败 =',e.message);}
+    try{
+      const pdm=biliArt.plugin.danmuku||biliArt.plugin.artplayerPluginDanmuku;
+      if(pdm&&pdm.load){pdm.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
+      else L('弹幕插件实例未找到,plugin keys =',Object.keys(biliArt.plugin||{}));
+    }catch(e){L('弹幕 load 失败 =',e.message);}
   }).catch(e=>L('弹幕请求失败 =',e.message));
 }
 function renderPages(v,pages,cur){

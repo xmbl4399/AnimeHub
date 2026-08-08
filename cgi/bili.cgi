@@ -153,6 +153,8 @@ case "$A" in
     echo "QUERY=[$QUERY_STRING]"
     ;;
   stream)
+    LOG=/tmp/bili-stream.log
+    echo "$(date '+%m-%d %H:%M:%S') REQ bvid=$BV cid=${CID:-?} rng=$(q rng) ua=${HTTP_USER_AGENT:0:40} ip=${REMOTE_ADDR:-?}" >> "$LOG" 2>/dev/null
     ensure_cookie
     if [ -z "$CID" ]; then
       if [ -z "$BV" ]; then
@@ -170,12 +172,14 @@ case "$A" in
     SIGNED=$(wbi_sign "$QS")
     PR=$(curl -s --compressed -m 10 "https://api.bilibili.com/x/player/playurl?$SIGNED" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB" -c "$JAR")
     U=$(printf '%s' "$PR" | grep -oE '"url":"[^"]*' | head -1 | sed 's/"url":"//; s/\\u0026/\&/g')
+    echo "$(date '+%H:%M:%S') PLAYURL pr_code=$(printf '%s' "$PR" | grep -oE '"code":[0-9-]*' | head -1 | grep -oE '[0-9-]*') url=${U:0:70}" >> "$LOG" 2>/dev/null
     if [ -z "$U" ]; then
       echo "Content-Type: text/plain"; echo "Status: 404 Not Found"; echo ""; echo "no stream url"; exit 1
     fi
     # 探测上游响应头(-r 0-0)拿 Content-Type / 总长度
     HD=/tmp/bili-hdr.txt
     curl -s -o /dev/null -m 15 -D "$HD" -r 0-0 "$U" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB"
+    echo "$(date '+%H:%M:%S') PROBE $(grep -iE '^HTTP/|^Content-Type:|^Content-Range:|^Content-Length:' "$HD" | tr '\n' ' ' | tr -d '\r' | cut -c1-160)" >> "$LOG" 2>/dev/null
     CT=$(grep -i '^Content-Type:' "$HD" | head -1 | tr -d '\r' | sed 's/^[Cc]ontent-[Tt]ype: *//')
     CTL=$(grep -i '^Content-Range:' "$HD" | head -1 | tr -d '\r' | sed 's/.*bytes [0-9]*-[0-9]*\///')
     [ -z "$CTL" ] && CTL=$(grep -i '^Content-Length:' "$HD" | head -1 | tr -d '\r' | sed 's/^[Cc]ontent-[Ll]ength: *//')
@@ -192,21 +196,31 @@ case "$A" in
       # 解析 bytes=start-end / bytes=start-
       RSTART=$(printf '%s' "$RNG" | sed 's/^[Bb]ytes=//; s/-.*//')
       REND=$(printf '%s' "$RNG" | sed 's/^[Bb]ytes=[0-9]*-//')
-      [ -z "$REND" ] && REND=$TOTAL
-      case "$REND" in *[!0-9]*) REND=$TOTAL;; esac
-      CLEN=$(( REND - RSTART + 1 ))
-      [ "$CLEN" -lt 0 ] && CLEN=0
+      case "$REND" in *[!0-9]*|'') REND="" ;; esac
+      if [ -z "$REND" ] || [ "$REND" -ge "$TOTAL" ]; then
+        # open-ended 或 end 超界:返回 start 到文件末尾
+        CLEN=$(( TOTAL - RSTART ))
+        [ "$CLEN" -lt 0 ] && CLEN=0
+        REND=$(( TOTAL - 1 ))
+        ROPT="-r ${RSTART}-"
+      else
+        CLEN=$(( REND - RSTART + 1 ))
+        [ "$CLEN" -lt 0 ] && CLEN=0
+        ROPT="-r ${RSTART}-${REND}"
+      fi
       echo "Status: 206 Partial Content"
       echo "Content-Range: bytes $RSTART-$REND/$TOTAL"
       echo "Content-Length: $CLEN"
-      ROPT="-r ${RSTART}-${REND}"
     else
       [ -n "$CTL" ] && echo "Content-Length: $CTL"
     fi
     echo "Content-Type: $CT"
     echo "Accept-Ranges: bytes"
     echo ""
-    exec curl -s $ROPT "$U" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB"
+    curl -s $ROPT "$U" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB"
+    RC=$?
+    echo "$(date '+%H:%M:%S') FWD rc=$RC clen=${CLEN:-$CTL}" >> "$LOG" 2>/dev/null
+    exit 0
     ;;
   dm)
     ensure_cookie
