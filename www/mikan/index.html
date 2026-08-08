@@ -629,7 +629,7 @@ function biliPick(list){
     let s=30+hit*25;                         // 基础 + 每命中关键词加分(更精确)
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))s+=100;
     if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))s+=30;
-    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|先行|补档|NCOP|NCED|主题曲|名场面|歌词/.test(t))s-=70;
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|NCOP|NCED|主题曲|名场面|歌词/.test(t))s-=70;
     s+=Math.log10((x.play||0)+10)*14;    // 播放量权重
     s+=Math.log10((x.danmaku||0)+10)*9;  // 弹幕量权重
     if(s>bs){bs=s;best=x;}

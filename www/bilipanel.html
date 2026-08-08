@@ -151,7 +151,7 @@ function pickBest(list,kw){
     let score=30+hit*25;                                     // 基础 + 每命中关键词加分
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))score+=100;  // 合集/多集
     if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))score+=30;  // 单集第1话
-    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|先行|补档|NCOP|NCED|主题曲|名场面|歌词/.test(t))score-=70; // 非正片减分
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|NCOP|NCED|主题曲|名场面|歌词/.test(t))score-=70; // 非正片减分
     score+=Math.log10((v.play||0)+10)*14;             // 播放量权重
     score+=Math.log10((v.danmaku||0)+10)*9;           // 弹幕量权重
     if(score>bestScore){bestScore=score;best=v;}
