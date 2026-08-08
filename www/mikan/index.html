@@ -754,7 +754,7 @@ function biliRenderPages(v,pages){
   const box=$('#biliPages');box.innerHTML='';
   pages.forEach((p,i)=>{
     const b=document.createElement('button');
-    b.textContent=(i+1)+' '+(p.part||'');
+    b.textContent=p.part||String(i+1);  // 直接显示上传者分集名;无名字时兜底序号
     b.style.cssText='padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:#d6dde6;font-size:12px;cursor:pointer';
     b.onclick=()=>{[...box.children].forEach(x=>x.style.borderColor='var(--line)');b.style.borderColor='#ffd700';biliPlayVideo(v,i+1,p.cid);};
     box.appendChild(b);
