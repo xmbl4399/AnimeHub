@@ -147,9 +147,10 @@ function pickBest(list,kw){
     if(!tn.includes(k))return;                       // 标题不含番名:跳过(滤掉无关番)
     let score=50;                                     // 含番名基础分
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))score+=100;  // 合集/多集(全13话/01-05集)
-    if(/第\s*1\s*[话集話]|第0?1话|\[01\]|\(01\)|\b01\b/.test(t))score+=30;  // 含第1话/01
+    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))score+=30;  // 单集第1话(01-05 区间不算)
     if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))score-=70; // 非正片减分
-    score+=Math.log10((v.play||0)+10)*8;              // 播放量加权(热门优先)
+    score+=Math.log10((v.play||0)+10)*14;             // 播放量权重
+    score+=Math.log10((v.danmaku||0)+10)*9;           // 弹幕量权重
     if(score>bestScore){bestScore=score;best=v;}
   });
   return best||list[0];

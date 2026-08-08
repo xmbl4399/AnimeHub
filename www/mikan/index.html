@@ -522,7 +522,7 @@ function renderBiliResults(list,collapsed){
     d.onclick=()=>{
       curBvid=v.bvid;
       renderBiliResults(lastBiliList);  // 更新黄框
-      box.style.display='none';$('#biliTg').style.display='none';$('#bq').value='';
+      box.style.display='none';$('#biliTg').textContent='展开';  // 收起列表但保留按钮
       biliPlayVideo(v,1,null);
     };
     box.appendChild(d);
@@ -575,9 +575,10 @@ function biliPick(list){
     if(!tn.includes(k))return;
     let s=50;
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))s+=100;
-    if(/第\s*1\s*[话集話]|第0?1话|\[01\]|\(01\)|\b01\b/.test(t))s+=30;
+    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))s+=30;  // 单集第1话(01-05 区间不算)
     if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))s-=70;
-    s+=Math.log10((x.play||0)+10)*8;
+    s+=Math.log10((x.play||0)+10)*14;    // 播放量权重
+    s+=Math.log10((x.danmaku||0)+10)*9;  // 弹幕量权重
     if(s>bs){bs=s;best=x;}
   });
   return best||(list||[])[0];
