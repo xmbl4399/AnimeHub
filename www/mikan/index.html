@@ -708,7 +708,25 @@ async function biliPlayVideo(v,page,cid){
   });
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
-    // 弹幕按钮组由页面 CSS 固定到播放窗口右上角(见 .art-video-player>.artplayer-plugin-danmuku 规则),不在此移动 DOM
+    // 诊断日志:弹幕按钮组实际位置(排查按钮错乱)
+    setTimeout(()=>{
+      try{
+        const dm=biliArt.$('.artplayer-plugin-danmuku');
+        const vp=biliArt.$('.art-video-player');
+        const ctl=biliArt.$('.art-controls');
+        const r=dm&&dm.getBoundingClientRect();
+        const p=dm&&dm.parentElement;
+        blog('[DM-POS] 按钮组:存在='+!!dm,
+          '父='+(p?(p.className||p.tagName):'?'),
+          'pos=('+(r?Math.round(r.left):'-')+','+(r?Math.round(r.top):'-')+')',
+          '尺寸='+(r?Math.round(r.width)+'x'+Math.round(r.height):'-'),
+          'display='+(dm?getComputedStyle(dm).display:'-'),
+          'position='+(dm?getComputedStyle(dm).position:'-'),
+          '屏宽='+innerWidth);
+        if(vp){const vr=vp.getBoundingClientRect();blog('[DM-POS] video-player=('+Math.round(vr.left)+','+Math.round(vr.top)+') '+Math.round(vr.width)+'x'+Math.round(vr.height));}
+        if(ctl){const cr=ctl.getBoundingClientRect();blog('[DM-POS] controls=('+Math.round(cr.left)+','+Math.round(cr.top)+') '+Math.round(cr.width)+'x'+Math.round(cr.height));}
+      }catch(e){blog('[DM-POS] 诊断失败 '+e.message);}
+    },300);
   });
   biliArt.on('error',e=>{blog('播放错误 ='+(e&&e.message||e));toast('播放错误: '+((e&&e.message)||'未知'),'err');});
 }
