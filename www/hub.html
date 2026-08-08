@@ -30,8 +30,9 @@ iframe{width:100%;height:100%;border:none;display:block}
     <button class="tab on" data-v=anime>番剧</button>
     <button class="tab" data-v=mikan>蜜柑</button>
     <button class="tab" data-v=aria2>aria2</button>
-    <button class="tab" data-v=pan>网盘</button>
-    <button class="tab" data-v=fb>文件</button>
+    <button class="tab" data-v=pan style="display:none">网盘</button>
+    <button class="tab" data-v=fb style="display:none">文件</button>
+    <button class="tab" id=moreTab onclick=toggleMore() title="展开/折叠更多">⋯</button>
   </nav>
 </header>
 <main>
@@ -123,10 +124,13 @@ function startFbAuthCheck(){
   },180000); // 3 分钟
 }
 // 检测 pan/fb 服务是否运行:反代 5xx(502 后端连不上)或 404(未配置反代=没装服务)时隐藏对应 tab
-function hideDeadTabs(){
-  const hideTab=v=>{const t=document.querySelector('.tab[data-v="'+v+'"]');if(t)t.style.display='none';};
-  fetch('/pan/',{cache:'no-store'}).then(r=>{if(r.status===404||r.status>=500)hideTab('pan');}).catch(()=>hideTab('pan'));
-  fetch('/fb/',{cache:'no-store'}).then(r=>{if(r.status===404||r.status>=500)hideTab('fb');}).catch(()=>hideTab('fb'));
+function hideDeadTabs(){}  // 网盘/文件已默认折叠(HTML style),由 ⋯ 展开;无需可用性探测
+function toggleMore(){
+  const expanded=document.getElementById('moreTab').classList.toggle('on');
+  ['pan','fb'].forEach(v=>{
+    const t=document.querySelector('.tab[data-v="'+v+'"]');
+    if(t)t.style.display=(expanded?'':'none');
+  });
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.v));
 hideDeadTabs();
