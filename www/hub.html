@@ -132,7 +132,7 @@ function toggleMore(){
     if(t)t.style.display=(expanded?'':'none');
   });
 }
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.v));
+document.querySelectorAll('.tab:not(#moreTab)').forEach(b=>b.onclick=()=>show(b.dataset.v));
 hideDeadTabs();
 const want=new URLSearchParams(location.search).get('v');
 show(['anime','mikan','aria2','pan','fb'].includes(want)?want:'anime');
