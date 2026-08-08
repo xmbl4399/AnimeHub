@@ -694,7 +694,7 @@ async function biliPlayVideo(v,page,cid){
   biliArt=new Artplayer({
     container:$('#biliBox'),
     url:'/bili-stream2?bvid='+v.bvid+'&cid='+c,
-    autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
+    autoplay:false,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',  // 自动加载,暂停待用户点击
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
   biliArt.on('ready',()=>{
