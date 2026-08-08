@@ -259,6 +259,7 @@ function renderSeason(){
 
 // 点卡片:按字幕组归档(详情页→组列表→每组 ExpandEpisodeTable 拉全部集数)
 async function doExpand(id,name,from){
+  blog('doExpand id='+id,'name='+name,'from='+(from||'season'));
   lastFrom=from||'season';
   curName=name;  // B 站直接播放用
   $('#stat').style.display='';
@@ -424,6 +425,7 @@ function closeDetail(){lastFrom==='search'?showSearch():showSeason();}
 // ===== B 站直接播放(内嵌,整合自 bilipanel)=====
 let curName='';
 let biliArt=null,biliLoaded=false;
+function blog(){const a=['[BILI]'].concat([].slice.call(arguments));console.log.apply(console,a);}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('脚本加载失败 '+src));document.head.appendChild(s);});}
 async function ensureBili(){
   if(!biliLoaded){await loadScript('/lib/artplayer.js');await loadScript('/lib/artplayer-plugin-danmuku.js');biliLoaded=true;}
@@ -437,14 +439,26 @@ function bSearch(){
   const q=$('#bq').value.trim();
   const box=$('#biliResults');
   if(!q)return;
+  blog('bSearch q='+q);
   box.style.display='block';
   $('#biliTg').style.display='';
   $('#biliTg').textContent='收起';
   box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--mut)">搜索中...</div>';
   fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
-    .then(r=>{if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控');return r.json();})
+    .then(r=>{
+      const ct=r.headers.get('content-type')||'';
+      blog('bSearch http='+r.status,'ct='+ct);
+      if(!/json/i.test(ct))throw new Error('风控(非 JSON)');
+      return r.text();
+    })
+    .then(txt=>{
+      blog('bSearch body='+txt.length+'B');
+      if(!txt.trim())throw new Error('空响应(风控),稍后重试');
+      return JSON.parse(txt);
+    })
     .then(j=>{
       const list=(j.data&&j.data.result)||[];
+      blog('bSearch 结果数='+list.length);
       if(!list.length){box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--mut)">无结果(风控或确实无)</div>';return;}
       box.innerHTML='';
       list.slice(0,12).forEach(v=>{
@@ -457,7 +471,10 @@ function bSearch(){
         d.onclick=()=>{box.style.display='none';$('#biliTg').style.display='none';$('#bq').value='';biliPlayVideo(v,1,null);};
         box.appendChild(d);
       });
-    }).catch(e=>{box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--err)">搜索失败: '+e.message+'</div>';});
+    }).catch(e=>{
+      blog('bSearch 失败 ='+e.message);
+      box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--err)">搜索失败: '+e.message+'</div>';
+    });
 }
 function biliToggle(){
   const box=$('#biliResults'),tg=$('#biliTg');
@@ -484,22 +501,31 @@ function biliPick(list){
 }
 async function biliPlay(){
   const name=curName;
+  blog('biliPlay name='+name);
   if(!name){toast('未获取到番剧名','err');return;}
   $('#biliTitle').textContent='B 站搜索:'+name;
   $('#biliArea').style.display='block';
-  try{await ensureBili();}catch(e){toast(e.message,'err');return;}
+  try{await ensureBili();blog('脚本加载完成');}catch(e){blog('脚本加载失败 '+e.message);toast(e.message,'err');return;}
   try{
     const r=await fetch('/bili?action=search&kw='+encodeURIComponent(name),{cache:'no-store'});
-    if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('搜索被风控,稍后重试');
-    const j=await r.json();
+    const ct=r.headers.get('content-type')||'';
+    blog('biliPlay search http='+r.status,'ct='+ct);
+    if(!/json/i.test(ct))throw new Error('搜索被风控,稍后重试');
+    const txt=await r.text();
+    blog('biliPlay search body='+txt.length+'B');
+    if(!txt.trim())throw new Error('搜索返回空(风控),稍后重试');
+    const j=JSON.parse(txt);
     const list=(j.data&&j.data.result)||[];
+    blog('biliPlay 结果数='+list.length);
     if(!list.length)throw new Error('B 站无结果');
     const v=biliPick(list);
+    blog('biliPlay 选中='+v.title.replace(/<\/?em[^>]*>/g,''),'bvid='+v.bvid);
     $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
     biliPlayVideo(v,1,null);
-  }catch(e){toast('B 站播放失败: '+e.message,'err');}
+  }catch(e){blog('biliPlay 失败 ='+e.message);toast('B 站播放失败: '+e.message,'err');}
 }
 async function biliPlayVideo(v,page,cid){
+  blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
   page=page||1;
   let c=cid;
   if(!c){
@@ -507,11 +533,13 @@ async function biliPlayVideo(v,page,cid){
       const r=await fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'});
       const j=await r.json();
       const pages=j.data||[];
+      blog('pagelist pages='+pages.length);
       biliRenderPages(v,pages);
       if(!pages.length)throw new Error('无分P');
       c=pages[Math.min(page-1,pages.length-1)].cid;
-    }catch(e){toast('分P加载失败: '+e.message,'err');return;}
+    }catch(e){blog('分P失败 ='+e.message);toast('分P加载失败: '+e.message,'err');return;}
   }
+  blog('cid='+c,'拉弹幕');
   let danmu=[];
   try{
     const x=await (await fetch('/bili?action=dm&cid='+c,{cache:'no-store'})).text();
@@ -520,15 +548,18 @@ async function biliPlayVideo(v,page,cid){
       const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
       return {time:+a[0]||0,text:m[2],color,mode:a[1]==4?1:a[1]==5?2:0};
     });
-  }catch(e){}
+    blog('弹幕='+danmu.length+' 条');
+  }catch(e){blog('弹幕失败 ='+e.message);}
   if(biliArt){biliArt.destroy();biliArt=null;}
+  blog('创建 ArtPlayer url=/bili-stream2?bvid='+v.bvid+'&cid='+c);
   biliArt=new Artplayer({
     container:$('#biliBox'),
     url:'/bili-stream2?bvid='+v.bvid+'&cid='+c,
     autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
-  biliArt.on('error',e=>toast('播放错误: '+((e&&e.message)||'未知'),'err'));
+  biliArt.on('ready',()=>blog('播放器 ready,duration='+biliArt.duration));
+  biliArt.on('error',e=>{blog('播放错误 ='+(e&&e.message||e));toast('播放错误: '+((e&&e.message)||'未知'),'err');});
 }
 function biliRenderPages(v,pages){
   const box=$('#biliPages');box.innerHTML='';
