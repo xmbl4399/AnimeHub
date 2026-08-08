@@ -79,7 +79,7 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 #player #artContainer{width:100%;height:min(540px,54vw,72vh);max-height:72vh;background:#000}
 #dmBtn{background:#2a3140;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 #dmReBtn{background:#2a3140;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
-#dmMatch{position:absolute;top:8px;left:14px;width:min(440px,calc(100% - 28px));background:#1c212b;border:1px solid #3a4250;border-radius:10px;padding:10px;z-index:6;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#dmMatch{position:absolute;top:8px;left:14px;width:min(440px,calc(100% - 28px));background:#1c212b;border:1px solid #3a4250;border-radius:10px;padding:10px;z-index:999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 #dmMatch .dmRow{display:flex;gap:8px}
 #dmMatch .dmRow input{flex:1;min-width:0;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid #444;background:#14181f;color:#eee;font-size:13px;outline:none}
 #dmMatch .dmRow input:focus{border-color:#ffd700}
@@ -153,12 +153,19 @@ function closePlayer(){
 let dmOn=true,dmList=[],dmTitle='',dmCurEp=0;
 function dmBtnLabel(st){const b=document.getElementById('dmBtn');b.textContent=st||('弹幕:'+(dmOn?'开':'关')+(dmList.length?('('+dmList.length+')'):''));}
 function toDanmu(comments){
-  return (comments||[]).map(x=>({
-    text:String(x.c||''),
-    mode:(x.m==2?1:x.m==3?2:0),
-    color:x.color?('#'+x.color):'#fff',
-    time:+x.p||0
-  })).filter(d=>d.text&&d.time>=0);
+  // dandan comment:p="时间,模式,颜色hex,用户hash"(逗号分隔),m=弹幕内容
+  return (comments||[]).map(x=>{
+    const pp=String(x.p||'').split(',');
+    const t=parseFloat(pp[0]);
+    const mode=parseInt(pp[1],10);
+    const c=String(pp[2]||'').replace('#','');
+    return {
+      text:String(x.m||''),
+      mode:(mode==2?1:mode==3?2:0),
+      color:(c&&c!=='0'&&c.length>=6)?('#'+c.slice(0,6)):'#fff',
+      time:isNaN(t)?0:t
+    };
+  }).filter(d=>d.text&&d.time>=0);
 }
 function rebuildPlayer(){
   if(!art)return;
