@@ -107,7 +107,7 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
     <div class=bar><span class=pt id=pTitle></span><button id=dmBtn onclick=toggleDm() title=弹幕>弹幕</button><button id=dmReBtn onclick=openDmMatch() title=重新匹配>重新匹配</button><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
     <div class=vwrap><div id=artContainer></div><div id=subLoading>解码字幕中(首次约 10-20 秒)...</div>
       <div id=dmMatch>
-        <div class=dmRow><input id=dmQ placeholder="输入番名搜索弹弹..."><button id=dmSearchBtn onclick=dmDoSearch()>搜索</button><button onclick=closeDmMatch()>✕</button></div>
+        <div class=dmRow><input id=dmQ placeholder="输入番名搜索B站..."><button id=dmSearchBtn onclick=dmDoSearch()>搜索</button><button onclick=closeDmMatch()>✕</button></div>
         <div id=dmResults></div>
       </div>
     </div>
@@ -197,7 +197,7 @@ function rebuildPlayer(){
 function toggleDm(){dmOn=!dmOn;dmBtnLabel();rebuildPlayer();}
 function openDmMatch(){
   const m=document.getElementById('dmMatch');
-  document.getElementById('dmQ').value=dmTitle||'';
+  document.getElementById('dmQ').value=dmSearchTitle(dmTitle)||'';
   document.getElementById('dmResults').innerHTML='';
   m.style.display='block';
   document.getElementById('dmQ').focus();
