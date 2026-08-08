@@ -687,6 +687,19 @@ async function biliPlay(){
 }
 // hub tab 切换时暂停本页播放器(隐藏 iframe 内视频继续外放的问题)
 window.addEventListener('message',e=>{if(e.data&&e.data.type==='videoPause'&&biliArt){biliArt.pause();}});
+// 全屏时尝试锁定横屏(Android Chromium 生效;iOS 视频全屏天然横屏,lock 不支持则静默)
+function bindFullscreenRotate(a){
+  if(!a)return;
+  a.on('fullscreen',st=>{
+    try{
+      if(st&&screen.orientation&&screen.orientation.lock){
+        setTimeout(()=>{screen.orientation.lock('landscape').catch(()=>{});},250);
+      }else if(!st&&screen.orientation&&screen.orientation.unlock){
+        screen.orientation.unlock();
+      }
+    }catch(e){}
+  });
+}
 async function biliPlayVideo(v,page,cid){
   blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
   $('#biliArea').style.display='block';  // 关闭过播放器后,再点结果要重新显示
@@ -745,10 +758,10 @@ async function biliPlayVideo(v,page,cid){
     setTimeout(()=>obs.disconnect(),8000);  // 兜底:8s 后停止观察
   }catch(e){}
   moveDm();  // 立即尝试一次(若 DOM 已就绪)
+  bindFullscreenRotate(biliArt);
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
     moveDm();  // 兜底再移一次(正常已被 MutationObserver 移过,幂等)
-    // 诊断日志:按钮组实际位置
     setTimeout(()=>{
       try{
         const box=document.getElementById('biliBox');
