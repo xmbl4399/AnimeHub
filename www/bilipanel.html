@@ -114,6 +114,7 @@ function doSearch(){
   const box=document.getElementById('results');
   if(!q)return;
   box.innerHTML='<div class=st>搜索中...</div>';
+  box.style.display='block';  // 重新搜索时恢复列表
   fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
     .then(r=>{if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控');return r.json();})
     .then(j=>{
@@ -224,6 +225,7 @@ function renderPages(v,pages,cur){
   });
 }
 function openPlayer(v){
+  document.getElementById('results').style.display='none';  // 点选后折叠列表
   playBili(v,1,null);
 }
 </script>
