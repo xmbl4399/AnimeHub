@@ -560,7 +560,7 @@ function renderBiliResults(list,collapsed){
   $('#biliTg').style.display='';
   $('#biliTg').textContent=collapsed?'展开':'收起';
   box.innerHTML='';
-  (list||[]).slice(0,12).forEach(v=>{
+  (list||[]).forEach(v=>{  // 渲染全部结果(最多20条,列表可滚动),确保选中项必在列表内
     const d=document.createElement('div');d.className='bitem';
     const t=v.title.replace(/<\/?em[^>]*>/g,'');
     const play=v.play>=10000?(v.play/10000).toFixed(1)+'万':v.play;
