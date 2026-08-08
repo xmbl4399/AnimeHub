@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src=/lib/player-common.js></script>
 <title>蜜柑追番</title>
 <script>if(window.self===window.top)location.replace('/hub.html?v=mikan');</script>
 <style>
@@ -722,6 +723,12 @@ async function biliPlayVideo(v,page,cid){
     }catch(e){blog('分P失败 ='+e.message);toast('分P加载失败: '+e.message,'err');return;}
   }
   blog('cid='+c,'拉弹幕');
+  // 调试:查询实际清晰度(playurl qn=80),输出到控制台
+  try{
+    const qr=await (await fetch('/bili?action=playurl&bvid='+v.bvid+'&cid='+c+'&qn=80',{cache:'no-store'})).json();
+    const d=qr.data||{};
+    blog('B站清晰度: 请求qn=80 → quality='+(d.quality||'?')+' format='+(d.format||'?')+' 支持='+(d.accept_description||[]).join('/'));
+  }catch(e){blog('清晰度查询失败 '+e.message);}
   let danmu=[];
   try{
     const x=await (await fetch('/bili?action=dm&cid='+c,{cache:'no-store'})).text();

@@ -175,6 +175,11 @@ case "$A" in
     PR=$(curl -s --compressed -m 10 "https://api.bilibili.com/x/player/playurl?$SIGNED" -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB" -c "$JAR")
     U=$(printf '%s' "$PR" | grep -oE '"url":"[^"]*' | head -1 | sed 's/"url":"//; s/\\u0026/\&/g')
     echo "$(date '+%H:%M:%S') PLAYURL pr_code=$(printf '%s' "$PR" | grep -oE '"code":[0-9-]*' | head -1 | grep -oE '[0-9-]*') url=${U:0:70}" >> "$LOG" 2>/dev/null
+    # 调试:记录请求 qn / 实际 quality / format / 是否带登录令牌
+    QLTY=$(printf '%s' "$PR" | grep -oE '"quality":[0-9]*' | head -1 | grep -oE '[0-9]*')
+    FMT=$(printf '%s' "$PR" | grep -oE '"format":"[^"]*"' | head -1 | sed 's/"format":"//;s/"//')
+    LGNOK=$([ -s "$LGN" ] && echo 1 || echo 0)
+    echo "$(date '+%H:%M:%S') QLTY qn_req=$QN quality=$QLTY format=$FMT login=$LGNOK" >> "$LOG" 2>/dev/null
     if [ -z "$U" ]; then
       echo "Content-Type: text/plain"; echo "Status: 404 Not Found"; echo ""; echo "no stream url"; exit 1
     fi
