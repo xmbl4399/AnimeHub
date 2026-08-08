@@ -95,13 +95,8 @@ h1 b{color:var(--acc)}
 .art-controls-center{flex-shrink:0}
 .artplayer-plugin-danmuku{flex-shrink:0;display:flex;align-items:center;gap:2px}
 .art-controls-right{flex-shrink:0;margin-left:auto}
-/* 弹幕按钮组固定播放窗口右上角:插件默认 bottom:-40px 会溢出视频区(biliBox 是 aspect-ratio 固定高度,
-   :has 预留的 40px 空间被吃掉)→ 工具条悬浮覆盖下方分集按钮。改为视频内右上角悬浮,不占空间不覆盖 */
-.art-video-player>.artplayer-plugin-danmuku{position:absolute!important;top:8px!important;right:8px!important;left:auto!important;bottom:auto!important;width:auto!important;height:auto!important;padding:2px 6px!important;background:rgba(0,0,0,.4);border-radius:6px;z-index:30!important;gap:8px}
-.art-video-player:has(>.artplayer-plugin-danmuku){margin-bottom:0!important}
-/* 设置/样式面板从按钮下方往右展开,避免超出右边界 */
-.artplayer-plugin-danmuku .apd-config .apd-config-panel{left:auto!important;right:0!important;width:min(320px,78vw)!important}
-.artplayer-plugin-danmuku .apd-style .apd-style-panel{left:auto!important;right:0!important;width:min(200px,70vw)!important}
+/* 弹幕按钮组移入控制条右侧后:取消插件默认 width:100%/height:32px,按内容收缩,防占满整行 */
+.art-controls-right .artplayer-plugin-danmuku{width:auto!important;height:auto!important;justify-content:flex-end;gap:6px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -715,26 +710,39 @@ async function biliPlayVideo(v,page,cid){
   });
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
-    // 诊断日志:弹幕按钮组实际位置(排查按钮错乱)
+    // 弹幕按钮组移入控制条右侧(全屏按钮左侧):标准 DOM 查询(ArtPlayer 实例无 $ 方法),
+    // 插件 DOM 可能延迟生成,重试直到成功
+    const moveDm=()=>{
+      try{
+        const box=document.getElementById('biliBox');
+        const dm=box.querySelector('.artplayer-plugin-danmuku');
+        const right=box.querySelector('.art-controls-right');
+        if(dm&&right&&dm.parentElement!==right){
+          right.insertBefore(dm,right.firstChild);
+          dm.style.cssText='';
+          blog('[DM-POS] 已移入控制条右侧,父='+dm.parentElement.className);
+          return true;
+        }
+        return false;
+      }catch(e){blog('[DM-POS] 移动失败 '+e.message);return true;}
+    };
+    let tries=0;
+    const t=setInterval(()=>{if(moveDm()||++tries>10)clearInterval(t);},200);
+    setTimeout(()=>clearInterval(t),3000);  // 3s 兜底停止
+    // 诊断日志:按钮组实际位置
     setTimeout(()=>{
       try{
         const box=document.getElementById('biliBox');
         const dm=box.querySelector('.artplayer-plugin-danmuku');
-        const vp=box.querySelector('.art-video-player');
-        const ctl=box.querySelector('.art-controls');
         const r=dm&&dm.getBoundingClientRect();
         const p=dm&&dm.parentElement;
         blog('[DM-POS] 按钮组:存在='+!!dm,
           '父='+(p?(p.className||p.tagName):'?'),
           'pos=('+(r?Math.round(r.left):'-')+','+(r?Math.round(r.top):'-')+')',
           '尺寸='+(r?Math.round(r.width)+'x'+Math.round(r.height):'-'),
-          'display='+(dm?getComputedStyle(dm).display:'-'),
-          'position='+(dm?getComputedStyle(dm).position:'-'),
           '屏宽='+innerWidth);
-        if(vp){const vr=vp.getBoundingClientRect();blog('[DM-POS] video-player=('+Math.round(vr.left)+','+Math.round(vr.top)+') '+Math.round(vr.width)+'x'+Math.round(vr.height));}
-        if(ctl){const cr=ctl.getBoundingClientRect();blog('[DM-POS] controls=('+Math.round(cr.left)+','+Math.round(cr.top)+') '+Math.round(cr.width)+'x'+Math.round(cr.height));}
       }catch(e){blog('[DM-POS] 诊断失败 '+e.message);}
-    },300);
+    },800);
   });
   biliArt.on('error',e=>{blog('播放错误 ='+(e&&e.message||e));toast('播放错误: '+((e&&e.message)||'未知'),'err');});
 }
