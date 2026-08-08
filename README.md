@@ -3,6 +3,16 @@
 家庭路由器(Kwrt/OpenWrt,MT7981 等)的番剧库项目:自写网页、nginx 反代配置、LuCI 控制面板,打包为 OpenWrt ipk 发布。
 部署目标:路由器 `/www/`(网页)、`/etc/nginx/conf.d/`(反代)、`/etc/...`(服务配置)。
 
+## 界面预览
+
+![界面 1](screenshots/shot1.jpg)
+
+![界面 2](screenshots/shot2.jpg)
+
+![界面 3](screenshots/shot3.jpg)
+
+![界面 4](screenshots/shot4.jpg)
+
 ## 目录结构
 
 ```
