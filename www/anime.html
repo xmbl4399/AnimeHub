@@ -377,14 +377,13 @@ function loadBiliDm(title,ep,attempt){
       return dmFromVideo(v,ep);
     }).then(ok=>{
       if(ok===false||ok===null){
-        // 第一次失败静默重试(保持匹配中),第二次才报失败
-        if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
-        else{dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
+        // 静默重试(保持匹配中),最多重试 2 次(共 3 次尝试)
+        if(attempt<2){setTimeout(()=>loadBiliDm(title,ep,attempt+1),attempt?4000:3000);}
+        else{dmBtnLabel('B站匹配失败(风控),点「重新匹配」重试');setTimeout(dmBtnLabel,8000);}
       }
     }).catch(()=>{
-      // 搜索被风控:重试一次(3 秒后),期间保持匹配中
-      if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
-      else{dmBtnLabel('B站失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);}
+      if(attempt<2){setTimeout(()=>loadBiliDm(title,ep,attempt+1),attempt?4000:3000);}
+      else{dmBtnLabel('B站匹配失败(风控),点「重新匹配」重试');setTimeout(dmBtnLabel,8000);}
     });
 }
 
