@@ -22,8 +22,6 @@ h1 b{color:var(--acc)}
 .search-panel button{background:var(--acc);border:none;color:#fff;border-radius:8px;padding:9px 18px;cursor:pointer;font-size:14px;flex-shrink:0}
 #stat{font-size:11.5px;color:var(--mut);padding:10px 14px 0}
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
-.list-head .aitags{display:flex;gap:4px;flex-wrap:wrap;margin-left:4px;font-size:10px}
-.list-head .aitags span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 6px;font-size:10px;color:var(--mut)}
 #listTitle{font-size:13px;color:var(--mut);word-break:break-all}
 .list-x{background:transparent;border:1px solid var(--err);color:var(--err);font-size:16px;width:28px;height:28px;border-radius:50%;line-height:1;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .list-x:hover{background:var(--err);color:#fff}
@@ -362,16 +360,21 @@ function renderInfo(meta){
     if(meta.info.day)tags.push('放送:'+meta.info.day);
     if(meta.info.ep)tags.push('共'+meta.info.ep+'集');
     if(meta.info.start)tags.push('开始:'+meta.info.start);
+    const prefix=tags.length?('📅 '+tags.join(' · ')+'\n\n'):'';
     let html='';
-    if(tags.length)html+='<div class="aitags">'+tags.map(x=>'<span>'+x+'</span>').join('')+'</div>';
-    if(meta.subs&&meta.subs.length)html+='<div class="aisubs">字幕组:'+meta.subs.join(' / ')+'</div>';
     if(meta.desc)html+='<div class="aidesc"></div>';
     ai.innerHTML=html;
-    if(meta.desc){const de=ai.querySelector('.aidesc');de.textContent=meta.desc;de.onclick=()=>de.classList.toggle('open');}
+    if(meta.desc||prefix){
+      let de=ai.querySelector('.aidesc');
+      if(!de){de=document.createElement('div');de.className='aidesc';ai.appendChild(de);}
+      de.textContent=prefix+(meta.desc||'');
+      de.onclick=()=>de.classList.toggle('open');
+    }
+    if(meta.subs&&meta.subs.length){
+      const sb=document.createElement('div');sb.className='aisubs';sb.textContent='字幕组:'+meta.subs.join(' / ');
+      ai.appendChild(sb);
+    }
     ai.style.display='';
-    // 信息 tags(放送/开始等)移到标题 #listTitle 后面
-    const tg=ai.querySelector('.aitags');
-    if(tg)$('#listTitle').insertAdjacentElement('afterend',tg);
   }else{ai.style.display='none';}
 }
 
