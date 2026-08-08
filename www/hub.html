@@ -62,6 +62,10 @@ function hideAriaNgLogo(){
   const t=setInterval(()=>{hide();if(++n>4)clearInterval(t);},800);
 }
 function show(v){
+  // 切换前广播暂停:隐藏的 iframe 里视频继续外放,通知各页面暂停/销毁播放器
+  document.querySelectorAll('.view iframe').forEach(f=>{
+    try{if(f.contentWindow)f.contentWindow.postMessage({type:'videoPause'},'*');}catch(e){}
+  });
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.remove('on'));
   const sec=$('#v-'+v);sec.classList.add('on');

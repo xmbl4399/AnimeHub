@@ -153,6 +153,8 @@ function loadSub(url){
     }).catch(()=>{});
 }
 function hideSubLoading(){const ov=document.getElementById('subLoading');if(ov)ov.style.display='none';}
+// hub tab 切换时暂停本页播放器(隐藏 iframe 内视频继续外放的问题)
+window.addEventListener('message',e=>{if(e.data&&e.data.type==='videoPause'&&art){art.pause();}});
 function createPlayer(url,danmu,opts){
   if(art){art.destroy();art=null;}
   art=new Artplayer(Object.assign({

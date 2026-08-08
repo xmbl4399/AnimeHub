@@ -685,6 +685,8 @@ async function biliPlay(){
     biliPlayVideo(v,1,null);
   }catch(e){blog('biliPlay 失败 ='+e.message);toast('B 站播放失败: '+e.message,'err');}
 }
+// hub tab 切换时暂停本页播放器(隐藏 iframe 内视频继续外放的问题)
+window.addEventListener('message',e=>{if(e.data&&e.data.type==='videoPause'&&biliArt){biliArt.pause();}});
 async function biliPlayVideo(v,page,cid){
   blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
   $('#biliArea').style.display='block';  // 关闭过播放器后,再点结果要重新显示
