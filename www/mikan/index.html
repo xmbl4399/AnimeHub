@@ -89,6 +89,11 @@ h1 b{color:var(--acc)}
 .bili-x{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:2px 9px;cursor:pointer;font-size:12px;flex-shrink:0}
 #biliFold{background:#00aeec;border-color:#00aeec;color:#fff;font-weight:700;padding:3px 10px}
 #biliArea{padding:0 14px 6px;border-bottom:1px solid var(--line)}
+/* 播放器控制条:禁止换行/挤压,弹幕按钮组固定位置 */
+.art-controls{flex-wrap:nowrap;white-space:nowrap}
+.art-controls-center{flex-shrink:0}
+.artplayer-plugin-danmuku{flex-shrink:0;display:flex;align-items:center;gap:2px}
+.art-controls-right{flex-shrink:0;margin-left:auto}
 </style>
 </head>
 <body>
@@ -692,7 +697,17 @@ async function biliPlayVideo(v,page,cid){
     autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
-  biliArt.on('ready',()=>blog('播放器 ready,duration='+biliArt.duration));
+  biliArt.on('ready',()=>{
+    blog('播放器 ready,duration='+biliArt.duration);
+    // 弹幕按钮组(开关/设置)移到控制条最右(全屏按钮左侧)
+    setTimeout(()=>{
+      try{
+        const dm=biliArt.$('.artplayer-plugin-danmuku');
+        const right=biliArt.$('.art-controls-right');
+        if(dm&&right&&!right.contains(dm))right.insertBefore(dm,right.firstChild);
+      }catch(e){}
+    },120);
+  });
   biliArt.on('error',e=>{blog('播放错误 ='+(e&&e.message||e));toast('播放错误: '+((e&&e.message)||'未知'),'err');});
 }
 function biliRenderPages(v,pages){
