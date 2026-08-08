@@ -271,6 +271,11 @@ async function doExpand(id,name,from){
   blog('doExpand id='+id,'name='+name,'from='+(from||'season'));
   lastFrom=from||'season';
   curName=name;  // B 站直接播放用
+  // 重置 B 站播放区状态(上次可能折叠/关闭过)
+  biliFolded=false;
+  const fb=$('#biliFold');if(fb)fb.textContent='折叠B站';
+  const bb=$('#biliBar');if(bb)bb.style.display='flex';
+  $('#biliArea').style.display='block';
   const bq=$('#bq');if(bq)bq.value=name;  // 搜索框默认填充番剧名
   $('#stat').style.display='';
   biliPlay();  // 自动播放当前番剧(B 站)
@@ -431,7 +436,10 @@ function toast(msg,cls){const t=$('#toast');t.textContent=msg;t.className=cls;t.
 function showSeason(){$('#stat').style.display='';$('#season').style.display='';$('#searchGrid').style.display='none';$('#list').style.display='none';if(seasonCache)seasonStat();else loadSeason();}
 function showSearch(){$('#stat').style.display='';$('#season').style.display='none';$('#searchGrid').style.display='';$('#list').style.display='none';}
 function showDetail(){$('#season').style.display='none';$('#searchGrid').style.display='none';$('#list').style.display='block';}
-function closeDetail(){lastFrom==='search'?showSearch():showSeason();}
+function closeDetail(){
+  biliClose();  // 销毁 B 站播放器,停止播放
+  lastFrom==='search'?showSearch():showSeason();
+}
 
 // ===== B 站直接播放(内嵌,整合自 bilipanel)=====
 let curName='';
