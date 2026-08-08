@@ -708,27 +708,31 @@ async function biliPlayVideo(v,page,cid){
     autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',  // 自动播放(用户点卡片展开有手势,浏览器放行)
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
+  // 弹幕按钮组移入控制条右侧(全屏按钮左侧):用 MutationObserver 在插件按钮组一出现就立刻移动,
+  // 不等 ready(视频加载期间就在正确位置,不会先显示默认位置再跳变)
+  const moveDm=()=>{
+    try{
+      const box=document.getElementById('biliBox');
+      const dm=box.querySelector('.artplayer-plugin-danmuku');
+      const right=box.querySelector('.art-controls-right');
+      if(dm&&right&&dm.parentElement!==right){
+        right.insertBefore(dm,right.firstChild);
+        dm.style.cssText='';
+        return true;
+      }
+    }catch(e){}
+    return false;
+  };
+  try{
+    const box=document.getElementById('biliBox');
+    const obs=new MutationObserver(()=>{if(moveDm())obs.disconnect();});
+    obs.observe(box,{childList:true,subtree:true});
+    setTimeout(()=>obs.disconnect(),8000);  // 兜底:8s 后停止观察
+  }catch(e){}
+  moveDm();  // 立即尝试一次(若 DOM 已就绪)
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
-    // 弹幕按钮组移入控制条右侧(全屏按钮左侧):标准 DOM 查询(ArtPlayer 实例无 $ 方法),
-    // 插件 DOM 可能延迟生成,重试直到成功
-    const moveDm=()=>{
-      try{
-        const box=document.getElementById('biliBox');
-        const dm=box.querySelector('.artplayer-plugin-danmuku');
-        const right=box.querySelector('.art-controls-right');
-        if(dm&&right&&dm.parentElement!==right){
-          right.insertBefore(dm,right.firstChild);
-          dm.style.cssText='';
-          blog('[DM-POS] 已移入控制条右侧,父='+dm.parentElement.className);
-          return true;
-        }
-        return false;
-      }catch(e){blog('[DM-POS] 移动失败 '+e.message);return true;}
-    };
-    let tries=0;
-    const t=setInterval(()=>{if(moveDm()||++tries>10)clearInterval(t);},200);
-    setTimeout(()=>clearInterval(t),3000);  // 3s 兜底停止
+    moveDm();  // 兜底再移一次(正常已被 MutationObserver 移过,幂等)
     // 诊断日志:按钮组实际位置
     setTimeout(()=>{
       try{
