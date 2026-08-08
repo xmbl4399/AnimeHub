@@ -130,7 +130,13 @@ function loadSub(url){
       const subs=(j.streams||[]).filter(s=>/subrip|ass|srt|webvtt/i.test(s.codec_name));
       if(subs.length&&art){
         const subUrl='/sub?action=get&path='+url+'&i='+subs[0].index;
-        const doSwitch=()=>art.subtitle.switch(subUrl,{type:'vtt'});
+        const doSwitch=()=>{
+          // 1) 占位字幕:立即显示"解码字幕中",让用户知道字幕在处理
+          const ph='WEBVTT\n\n00:00.000 --> 99:00.000\n解码字幕中(首次约 10-20 秒)...';
+          art.subtitle.switch(URL.createObjectURL(new Blob([ph],{type:'text/vtt'})),{type:'vtt'});
+          // 2) 真实字幕:提取完成后替换占位(缓存命中时立即)
+          art.subtitle.switch(subUrl,{type:'vtt'});
+        };
         if(art.ready&&art.ready.then)art.ready.then(doSwitch);else doSwitch();
       }
     }).catch(()=>{});
