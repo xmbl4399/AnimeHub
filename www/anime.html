@@ -358,9 +358,8 @@ function dmFromVideo(v,ep){
     return true;
   });
 }
-function loadBiliDm(title,ep,attempt){
-  attempt=attempt||0;
-  dmBtnLabel(attempt?'B站匹配中(重试'+(attempt+1)+')...':'B站匹配中...');
+function loadBiliDm(title,ep){
+  dmBtnLabel('B站匹配中(最长16秒)...');
   fetch('/bili?action=search&kw='+encodeURIComponent(dmSearchTitle(title)),{cache:'no-store'})
     .then(r=>{
       if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控拦截');
@@ -376,15 +375,8 @@ function loadBiliDm(title,ep,attempt){
       if(!v)v=list.find(x=>/全集|全\d+[话集話]|合集|全.*话/i.test(x.title))||list[0];
       return dmFromVideo(v,ep);
     }).then(ok=>{
-      if(ok===false||ok===null){
-        // 静默重试一次(3s,保持匹配中),彻底失败才提示(6s 恢复)
-        if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
-        else{dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
-      }
-    }).catch(()=>{
-      if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
-      else{dmBtnLabel('B站失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);}
-    });
+      if(ok===false||ok===null){dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
+    }).catch(()=>{dmBtnLabel('B站匹配失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);});
 }
 
 function parseAnime(name){

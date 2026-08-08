@@ -39,12 +39,11 @@ case "$A" in
       cat "$CF"
       exit 0
     fi
-    # 搜索:B 站对搜索接口间歇风控(HTML 出错页),失败自动重试最多 3 次
+    # 搜索:B 站对搜索接口间歇风控(HTML 出错页);16 秒窗口内持续重试,成功即返回
     R=""
-    i=0
-    while [ $i -lt 3 ]; do
-      i=$((i+1))
-      R=$(curl -s --compressed -m 15 "https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=$KW" \
+    END=$(( $(date +%s) + 16 ))
+    while [ $(date +%s) -lt $END ]; do
+      R=$(curl -s --compressed -m 5 "https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=$KW" \
         -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$JAR" -c "$JAR")
       if printf '%s' "$R" | head -c 1 | grep -q '{'; then
         printf '%s' "$R" > "$CF" 2>/dev/null
@@ -52,7 +51,7 @@ case "$A" in
         printf '%s' "$R"
         exit 0
       fi
-      [ $i -lt 3 ] && sleep 2
+      sleep 2
     done
     printf '%s' "$R"
     ;;
