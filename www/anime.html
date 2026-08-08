@@ -346,6 +346,7 @@ function dmFromVideo(v,ep){
     const cid=pages[idx]&&pages[idx].cid;
     console.log('[DM] 分P匹配: idx='+idx,'cid='+cid,'part='+(pages[idx]?pages[idx].part:'?'));
     if(!cid)return null;
+    dmSource={bvid:v.bvid,cid:cid};  // 在 cid 作用域内记录来源
     return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'});
   }).then(r=>r&&r.text()).then(xml=>{
     if(!xml||xml.indexOf('<d')<0)return false;
@@ -358,7 +359,6 @@ function dmFromVideo(v,ep){
       dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+p[0]||0});
     });
     console.log('[DM] 弹幕条数='+dmList.length);
-    dmSource={bvid:v.bvid,cid:cid};
     dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
     return true;
