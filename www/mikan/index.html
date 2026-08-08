@@ -708,12 +708,15 @@ async function biliPlayVideo(v,page,cid){
   });
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
-    // 弹幕按钮组(开关/设置)移到控制条最右(全屏按钮左侧)
+    // 弹幕按钮组(开关/设置)固定到播放窗口右上角覆盖层,不占控制条空间(移动端控制条挤不下会被挤走)
     setTimeout(()=>{
       try{
         const dm=biliArt.$('.artplayer-plugin-danmuku');
-        const right=biliArt.$('.art-controls-right');
-        if(dm&&right&&!right.contains(dm))right.insertBefore(dm,right.firstChild);
+        const app=biliArt.$('.artplayer-app');
+        if(dm&&app){
+          dm.style.cssText='position:absolute;top:8px;right:8px;z-index:30;display:flex;align-items:center;gap:2px;background:rgba(0,0,0,.35);border-radius:6px;padding:1px 2px;';
+          app.appendChild(dm);
+        }
       }catch(e){}
     },120);
   });
