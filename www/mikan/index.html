@@ -615,18 +615,21 @@ function biliToggle(){
   box.style.display=on?'none':'block';
   tg.textContent=on?'展开':'收起';
 }
-// 智能匹配:标题含番名 + 合集/第1话优先,滤 OP/解说(与 bilipanel 同规则)
+// 智能匹配:番名 token 化(标题含部分关键词也算,如"千年血战"无"篇"),合集/第1话优先,滤 OP/解说
 function biliPick(list){
   const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
-  const k=(curName||'').toLowerCase();
+  const tokens=[...new Set((curName||'').replace(/[^\u4e00-\u9fa5]/g,'').match(/[\u4e00-\u9fa5]{2,}/g)||[])];
+  const tnc=t=>clean(t).replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g,'');
   let best=null,bs=-1;
-  (list||[]).slice(0,15).forEach(x=>{
-    const t=clean(x.title),tn=t.toLowerCase();
-    if(!tn.includes(k))return;
-    let s=50;
+  (list||[]).forEach(x=>{
+    const t=clean(x.title),t2=tnc(t);
+    let hit=0;
+    tokens.forEach(tok=>{if(t2.includes(tok))hit++;});
+    if(hit===0)return;                      // 无任何关键词 → 无关番,过滤
+    let s=30+hit*25;                         // 基础 + 每命中关键词加分(更精确)
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))s+=100;
-    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))s+=30;  // 单集第1话(01-05 区间不算)
-    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))s-=70;
+    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))s+=30;
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|先行|补档|NCOP|NCED|主题曲|名场面|歌词/.test(t))s-=70;
     s+=Math.log10((x.play||0)+10)*14;    // 播放量权重
     s+=Math.log10((x.danmaku||0)+10)*9;  // 弹幕量权重
     if(s>bs){bs=s;best=x;}

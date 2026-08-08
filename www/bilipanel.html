@@ -137,18 +137,21 @@ function renderResults(list){
     box.appendChild(d);
   });
 }
-// 智能匹配:标题含番名 + 合集/第1话优先,滤掉 OP/MAD/解说等非正片
+// 智能匹配:番名 token 化(标题含部分关键词也算),合集/第1话优先,滤 OP/解说/先行/补档
 function pickBest(list,kw){
   const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
-  const k=kw.toLowerCase();
+  const tokens=[...new Set((kw||'').replace(/[^\u4e00-\u9fa5]/g,'').match(/[\u4e00-\u9fa5]{2,}/g)||[])];
+  const tnc=t=>clean(t).replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g,'');
   let best=null,bestScore=-1;
   list.slice(0,15).forEach(v=>{
-    const t=clean(v.title),tn=t.toLowerCase();
-    if(!tn.includes(k))return;                       // 标题不含番名:跳过(滤掉无关番)
-    let score=50;                                     // 含番名基础分
-    if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))score+=100;  // 合集/多集(全13话/01-05集)
-    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))score+=30;  // 单集第1话(01-05 区间不算)
-    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐/.test(t))score-=70; // 非正片减分
+    const t=clean(v.title),t2=tnc(t);
+    let hit=0;
+    tokens.forEach(tok=>{if(t2.includes(tok))hit++;});
+    if(hit===0)return;                                       // 无任何关键词 → 过滤
+    let score=30+hit*25;                                     // 基础 + 每命中关键词加分
+    if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))score+=100;  // 合集/多集
+    if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))score+=30;  // 单集第1话
+    if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|先行|补档|NCOP|NCED|主题曲|名场面|歌词/.test(t))score-=70; // 非正片减分
     score+=Math.log10((v.play||0)+10)*14;             // 播放量权重
     score+=Math.log10((v.danmaku||0)+10)*9;           // 弹幕量权重
     if(score>bestScore){bestScore=score;best=v;}
