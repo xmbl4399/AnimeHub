@@ -162,7 +162,12 @@ function makePlayer(u,danmu){
     theme:'#ffd700',
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,antiOverlap:true,visible:true,emitter:false})]
   });
-  biliArt.on('ready',()=>L('ArtPlayer ready,duration =',biliArt.duration));
+  biliArt.on('ready',()=>{
+    L('ArtPlayer ready,duration =',biliArt.duration);
+    const d=biliArt.duration||0;
+    const mm=Math.floor(d/60),ss=Math.floor(d%60);
+    document.getElementById('st').textContent='▶ 播放中 时长 '+mm+':'+(ss<10?'0':'')+ss;
+  });
   biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
   ['loadedmetadata','canplay','playing','waiting','stalled','suspend','emptied','abort','error'].forEach(ev=>{
     biliArt.on('video:'+ev,(e)=>{
