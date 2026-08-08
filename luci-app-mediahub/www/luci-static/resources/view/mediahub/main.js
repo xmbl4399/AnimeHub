@@ -11,7 +11,7 @@ function api(action) {
 return view.extend({
 	render: function () {
 		var m = new form.Map('mediahub', _('AnimeHub'), _('服务主开关、aria2 下载目录全局应用、数据维护与诊断。保存表单后点击下方按钮应用。'));
-		var s = m.section(form.TypedSection, 'main', _('服务设置'));
+		var s = m.section(form.TypedSection, 'main', '');
 		s.anonymous = true;
 		s.addremove = false;
 
