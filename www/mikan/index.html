@@ -105,7 +105,7 @@ h1 b{color:var(--acc)}
 <div id="list">
   <div class="list-head"><span id="listTitle"></span><button class="list-x" onclick="closeDetail()" title="关闭">✕</button></div>
   <div class="bili-bar">
-    <button class="bili-play" onclick="biliPlay()" title="B 站直接播放当前番剧"><span style="color:#fff;font-weight:700;font-size:13px">B站</span></button>
+    <button class="bili-play" onclick="biliPlay()" title="B 站直接播放当前番剧"><span style="color:#fff;font-weight:700;font-size:13px">播放</span></button>
     <input id="bq" placeholder="B站搜索番剧..." onkeydown="if(event.key==='Enter')bSearch()">
     <button class="bili-s" onclick="bSearch()">搜索</button>
     <button class="bili-s" id="biliTg" onclick="biliToggle()" style="display:none">收起</button>
@@ -423,7 +423,7 @@ function closeDetail(){lastFrom==='search'?showSearch():showSeason();}
 
 // ===== B 站直接播放(内嵌,整合自 bilipanel)=====
 let curName='';
-let biliArt=null,biliLoaded=false;
+let biliArt=null,biliLoaded=false,curBvid='',lastBiliList=[];
 function blog(){const a=['[BILI]'].concat([].slice.call(arguments));console.log.apply(console,a);}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('脚本加载失败 '+src));document.head.appendChild(s);});}
 async function ensureBili(){
@@ -434,15 +434,39 @@ function biliClose(){
   if(biliArt){biliArt.destroy();biliArt=null;}
   $('#biliPages').innerHTML='';
 }
-function bSearch(){
-  const q=$('#bq').value.trim();
+function renderBiliResults(list){
   const box=$('#biliResults');
-  if(!q)return;
-  blog('bSearch q='+q);
+  lastBiliList=list||[];
   box.style.display='block';
   $('#biliTg').style.display='';
   $('#biliTg').textContent='收起';
+  box.innerHTML='';
+  (list||[]).slice(0,12).forEach(v=>{
+    const d=document.createElement('div');d.className='bitem';
+    const t=v.title.replace(/<\/?em[^>]*>/g,'');
+    const play=v.play>=10000?(v.play/10000).toFixed(1)+'万':v.play;
+    const dm=v.danmaku>=10000?(v.danmaku/10000).toFixed(1)+'万':v.danmaku;
+    const isCol=/全\d+[话集話]|全集|合集|1-\d/.test(t);
+    if(v.bvid===curBvid)d.style.border='1px solid #ffd700';  // 当前播放项黄框
+    d.innerHTML='<div>'+t+(isCol?' <span style="color:#ffd700">合集</span>':'')+'</div><div class="bm">▶ '+play+' · 弹 '+dm+' · '+v.author+'</div>';
+    d.onclick=()=>{
+      curBvid=v.bvid;
+      renderBiliResults(lastBiliList);  // 更新黄框
+      box.style.display='none';$('#biliTg').style.display='none';$('#bq').value='';
+      biliPlayVideo(v,1,null);
+    };
+    box.appendChild(d);
+  });
+}
+function bSearch(){
+  const q=$('#bq').value.trim();
+  if(!q)return;
+  blog('bSearch q='+q);
+  const box=$('#biliResults');
   box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--mut)">搜索中...</div>';
+  box.style.display='block';
+  $('#biliTg').style.display='';
+  $('#biliTg').textContent='收起';
   fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
     .then(r=>{
       const ct=r.headers.get('content-type')||'';
@@ -459,17 +483,7 @@ function bSearch(){
       const list=(j.data&&j.data.result)||[];
       blog('bSearch 结果数='+list.length);
       if(!list.length){box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--mut)">无结果(风控或确实无)</div>';return;}
-      box.innerHTML='';
-      list.slice(0,12).forEach(v=>{
-        const d=document.createElement('div');d.className='bitem';
-        const t=v.title.replace(/<\/?em[^>]*>/g,'');
-        const play=v.play>=10000?(v.play/10000).toFixed(1)+'万':v.play;
-        const dm=v.danmaku>=10000?(v.danmaku/10000).toFixed(1)+'万':v.danmaku;
-        const isCol=/全\d+[话集話]|全集|合集|1-\d/.test(t);
-        d.innerHTML='<div>'+t+(isCol?' <span style="color:#ffd700">合集</span>':'')+'</div><div class="bm">▶ '+play+' · 弹 '+dm+' · '+v.author+'</div>';
-        d.onclick=()=>{box.style.display='none';$('#biliTg').style.display='none';$('#bq').value='';biliPlayVideo(v,1,null);};
-        box.appendChild(d);
-      });
+      renderBiliResults(list);
     }).catch(e=>{
       blog('bSearch 失败 ='+e.message);
       box.innerHTML='<div style="padding:8px;font-size:12px;color:var(--err)">搜索失败: '+e.message+'</div>';
@@ -526,8 +540,10 @@ async function biliPlay(){
     }
     if(!list.length){blog('全部变体失败 lastErr='+lastErr);throw new Error(lastErr||'搜索返回空,稍后重试');}
     const v=biliPick(list);
+    curBvid=v.bvid;
     blog('biliPlay 选中='+v.title.replace(/<\/?em[^>]*>/g,''),'bvid='+v.bvid);
     $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
+    renderBiliResults(list);  // 渲染搜索结果列表(带折叠按钮+当前项黄框)
     biliPlayVideo(v,1,null);
   }catch(e){blog('biliPlay 失败 ='+e.message);toast('B 站播放失败: '+e.message,'err');}
 }
