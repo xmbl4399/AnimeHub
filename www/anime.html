@@ -127,7 +127,7 @@ const fmtSize=s=>s>=1073741824?(s/1073741824).toFixed(1)+' GB':s>=1048576?(s/104
 let vids=[];
 function loadList(){fetch('/videos.json?t='+Date.now()).then(r=>r.json()).then(fs=>{vids=fs;renderAnime();}).catch(()=>document.getElementById('empty').style.display='block');}
 loadList();
-// ===== 播放器(ArtPlayer + dandanplay 弹幕)=====
+// ===== 播放器(ArtPlayer + B站弹幕)=====
 let art=null,curUrl='';
 function loadSub(url){
   // url 已是 enc() 编码过的(play 传入),直接拼,不能再 encodeURIComponent(否则双层编码 404)
@@ -175,24 +175,9 @@ function closePlayer(){
   document.getElementById('player').style.display='none';
   if(art){art.destroy();art=null;}
 }
-// ===== dandanplay 弹幕 =====
+// ===== B站弹幕 =====
 let dmOn=true,dmList=[],dmTitle='',dmCurEp=0,dmSource=null;
 function dmBtnLabel(st){const b=document.getElementById('dmBtn');b.textContent=st||('弹幕:'+(dmOn?'开':'关')+(dmList.length?('('+dmList.length+')'):''));}
-function toDanmu(comments){
-  // dandan comment:p="时间,模式,颜色hex,用户hash"(逗号分隔),m=弹幕内容
-  return (comments||[]).map(x=>{
-    const pp=String(x.p||'').split(',');
-    const t=parseFloat(pp[0]);
-    const mode=parseInt(pp[1],10);
-    const c=String(pp[2]||'').replace('#','');
-    return {
-      text:String(x.m||''),
-      mode:(mode==2?1:mode==3?2:0),
-      color:(c&&c!=='0'&&c.length>=6)?('#'+c.slice(0,6)):'#fff',
-      time:isNaN(t)?0:t
-    };
-  }).filter(d=>d.text&&d.time>=0);
-}
 function rebuildPlayer(){
   if(!art)return;
   const t=art.currentTime,paused=art.paused,url=art.option.url;
@@ -281,39 +266,6 @@ function dmPickPage(v,p){
     dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
   }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,6000);});
-}
-function dmShowEps(a){
-  const box=document.getElementById('dmResults');
-  const eps=a.episodes||[];
-  box.innerHTML='';
-  const back=document.createElement('div');back.className='dm-empty';back.textContent='‹ 返回搜索';back.style.cursor='pointer';
-  back.onclick=()=>{document.getElementById('dmResults').innerHTML='';dmDoSearch();};
-  box.appendChild(back);
-  const head=document.createElement('div');head.className='dm-item';head.style.cursor='default';head.style.borderColor='#ffd700';
-  head.innerHTML='<span>'+esc(a.animeTitle)+'</span>';
-  box.appendChild(head);
-  eps.forEach((e,i)=>{
-    const d=document.createElement('div');d.className='dm-item';
-    d.innerHTML='<span>'+(i+1)+' 集</span><span class=c>'+esc(e.episodeTitle||'')+((i+1)===dmCurEp?' ✓':'')+'</span>';
-    d.onclick=()=>dmPick(a,i+1);
-    box.appendChild(d);
-  });
-}
-function dmPick(a,ep){
-  dmList=[];dmTitle=a.animeTitle;dmCurEp=ep||0;
-  closeDmMatch();
-  dmBtnLabel('匹配中...');
-  const eps=a.episodes||[];
-  let item=null;
-  if(ep)item=eps[Math.min(Math.max(ep-1,0),eps.length-1)];
-  if(!item)item=eps[0];
-  if(!item){dmBtnLabel();return;}
-  fetch('/dandan/api/v2/comment/'+item.episodeId,{cache:'no-store'})
-    .then(r=>r.json()).then(j=>{
-      dmList=toDanmu(j.comments);
-      dmBtnLabel();
-      rebuildPlayer();
-    }).catch(()=>dmBtnLabel());
 }
 function loadDm(title,ep){
   dmTitle=title;dmCurEp=ep||undefined;
