@@ -29,8 +29,32 @@ case "$A" in
     ensure_cookie
     echo "Content-Type: application/json; charset=utf-8"
     echo ""
-    curl -s --compressed -m 15 "https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=$KW" \
-      -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$JAR" -c "$JAR"
+    # 结果缓存 10 分钟(同一关键词不重复搜索,减少风控触发面)
+    CACHE=/tmp/bili-srcache
+    mkdir -p "$CACHE" 2>/dev/null
+    H=$(printf '%s' "$KW" | md5sum | cut -d' ' -f1)
+    CF="$CACHE/$H.json"
+    TS="$CACHE/$H.ts"
+    if [ -f "$CF" ] && [ -f "$TS" ] && [ $(( $(date +%s) - $(cat "$TS" 2>/dev/null) )) -lt 600 ]; then
+      cat "$CF"
+      exit 0
+    fi
+    # 搜索:B 站对搜索接口间歇风控(HTML 出错页),失败自动重试最多 3 次
+    R=""
+    i=0
+    while [ $i -lt 3 ]; do
+      i=$((i+1))
+      R=$(curl -s --compressed -m 15 "https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=$KW" \
+        -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$JAR" -c "$JAR")
+      if printf '%s' "$R" | head -c 1 | grep -q '{'; then
+        printf '%s' "$R" > "$CF" 2>/dev/null
+        date +%s > "$TS" 2>/dev/null
+        printf '%s' "$R"
+        exit 0
+      fi
+      [ $i -lt 3 ] && sleep 2
+    done
+    printf '%s' "$R"
     ;;
   pagelist)
     ensure_cookie
