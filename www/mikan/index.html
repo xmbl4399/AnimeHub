@@ -704,19 +704,6 @@ async function biliPlay(){
 }
 // hub tab 切换时暂停本页播放器(隐藏 iframe 内视频继续外放的问题)
 window.addEventListener('message',e=>{if(e.data&&e.data.type==='videoPause'&&biliArt){biliArt.pause();}});
-// 全屏时尝试锁定横屏(Android Chromium 生效;iOS 视频全屏天然横屏,lock 不支持则静默)
-function bindFullscreenRotate(a){
-  if(!a)return;
-  a.on('fullscreen',st=>{
-    try{
-      if(st&&screen.orientation&&screen.orientation.lock){
-        setTimeout(()=>{screen.orientation.lock('landscape').catch(()=>{});},250);
-      }else if(!st&&screen.orientation&&screen.orientation.unlock){
-        screen.orientation.unlock();
-      }
-    }catch(e){}
-  });
-}
 async function biliPlayVideo(v,page,cid){
   blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
   $('#biliArea').style.display='block';  // 关闭过播放器后,再点结果要重新显示
@@ -738,11 +725,7 @@ async function biliPlayVideo(v,page,cid){
   let danmu=[];
   try{
     const x=await (await fetch('/bili?action=dm&cid='+c,{cache:'no-store'})).text();
-    danmu=[...x.matchAll(/<d p="([^"]*)">([^<]*)<\/d>/g)].map(m=>{
-      const a=m[1].split(',');
-      const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
-      return {time:+a[0]||0,text:m[2],color,mode:a[1]==4?1:a[1]==5?2:0};
-    });
+    danmu=parseBiliDm(x);
     blog('弹幕='+danmu.length+' 条');
   }catch(e){blog('弹幕失败 ='+e.message);}
   if(biliArt){biliArt.destroy();biliArt=null;}
@@ -753,59 +736,10 @@ async function biliPlayVideo(v,page,cid){
     autoplay:true,autoSize:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',  // 自动播放(用户点卡片展开有手势,浏览器放行)
     plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
-  // 弹幕按钮组移入控制条右侧(全屏按钮左侧):用 MutationObserver 在插件按钮组一出现就立刻移动,
-  // 不等 ready(视频加载期间就在正确位置,不会先显示默认位置再跳变)
-  const moveDm=()=>{
-    try{
-      const box=document.getElementById('biliBox');
-      const dm=box.querySelector('.artplayer-plugin-danmuku');
-      const right=box.querySelector('.art-controls-center');
-      if(dm&&right&&dm.parentElement!==right){
-        right.insertBefore(dm,right.firstChild);
-        dm.style.cssText='';
-        return true;
-      }
-    }catch(e){}
-    return false;
-  };
-  // 观察器持续运行:退出全屏等场景 ArtPlayer 会重建控制条把按钮组重置回默认位置,随时移回
-  try{
-    const box=document.getElementById('biliBox');
-    const obs=new MutationObserver(()=>{moveDm();});
-    obs.observe(box,{childList:true,subtree:true});
-  }catch(e){}
-  moveDm();  // 立即尝试一次(若 DOM 已就绪)
+  setupDmButtonGroup('biliBox');  // 弹幕按钮组移入时长条右侧(公共逻辑,MutationObserver 持续防重置)
   bindFullscreenRotate(biliArt);
   biliArt.on('ready',()=>{
     blog('播放器 ready,duration='+biliArt.duration);
-    moveDm();  // 兜底再移一次(正常已被 MutationObserver 移过,幂等)
-    // 诊断:弹幕显示区域实际尺寸
-    setTimeout(()=>{
-      try{
-        const box=document.getElementById('biliBox');
-        const app=box.querySelector('.artplayer-app');
-        const cv=box.querySelector('.art-danmuku')||box.querySelector('canvas');
-        const p=biliArt.plugin&&biliArt.plugin.danmuku;
-        const mt=p&&p.marginTop?p.marginTop():'?';
-        const mb=p&&p.marginBottom?p.marginBottom():'?';
-        blog('[DM-AREA] 弹幕画布=',cv?Math.round(cv.getBoundingClientRect().width)+'x'+Math.round(cv.getBoundingClientRect().height):'?',
-          'marginTop='+mt,'marginBottom='+mb,
-          'app=',app?Math.round(app.getBoundingClientRect().width)+'x'+Math.round(app.getBoundingClientRect().height):'?');
-      }catch(e){blog('[DM-AREA] err='+e.message);}
-    },600);
-    setTimeout(()=>{
-      try{
-        const box=document.getElementById('biliBox');
-        const dm=box.querySelector('.artplayer-plugin-danmuku');
-        const r=dm&&dm.getBoundingClientRect();
-        const p=dm&&dm.parentElement;
-        blog('[DM-POS] 按钮组:存在='+!!dm,
-          '父='+(p?(p.className||p.tagName):'?'),
-          'pos=('+(r?Math.round(r.left):'-')+','+(r?Math.round(r.top):'-')+')',
-          '尺寸='+(r?Math.round(r.width)+'x'+Math.round(r.height):'-'),
-          '屏宽='+innerWidth);
-      }catch(e){blog('[DM-POS] 诊断失败 '+e.message);}
-    },800);
   });
   biliArt.on('error',e=>{blog('播放错误 ='+(e&&e.message||e));toast('播放错误: '+((e&&e.message)||'未知'),'err');});
 }

@@ -5,6 +5,7 @@
 <title>番剧库</title>
 <script src=/lib/artplayer.js></script>
 <script src=/lib/artplayer-plugin-danmuku.js></script>
+<script src=/lib/player-common.js></script>
 <script>if(window.self===window.top)location.replace('/hub.html?v=anime');</script>
 <meta name=viewport content='width=device-width,initial-scale=1'>
 <style>
@@ -156,19 +157,6 @@ function loadSub(url){
 function hideSubLoading(){const ov=document.getElementById('subLoading');if(ov)ov.style.display='none';}
 // hub tab 切换时暂停本页播放器(隐藏 iframe 内视频继续外放的问题)
 window.addEventListener('message',e=>{if(e.data&&e.data.type==='videoPause'&&art){art.pause();}});
-// 全屏时尝试锁定横屏(Android Chromium 生效;iOS 视频全屏天然横屏,lock 不支持则静默)
-function bindFullscreenRotate(a){
-  if(!a)return;
-  a.on('fullscreen',st=>{
-    try{
-      if(st&&screen.orientation&&screen.orientation.lock){
-        setTimeout(()=>{screen.orientation.lock('landscape').catch(()=>{});},250);
-      }else if(!st&&screen.orientation&&screen.orientation.unlock){
-        screen.orientation.unlock();
-      }
-    }catch(e){}
-  });
-}
 function createPlayer(url,danmu,opts){
   if(art){art.destroy();art=null;}
   art=new Artplayer(Object.assign({
@@ -180,43 +168,9 @@ function createPlayer(url,danmu,opts){
       speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false,margin:[10,'75%']  // 满屏档(与设置面板滑块一致)
     })]
   },opts||{}));
-  // 弹幕按钮组(插件自带开关/设置/样式)移入控制条右侧:MutationObserver 在插件DOM一出现就移,避免先默认位置再跳变
-  const moveDm=()=>{
-    try{
-      const box=document.getElementById('artContainer');
-      const dm=box.querySelector('.artplayer-plugin-danmuku');
-      const right=box.querySelector('.art-controls-center');
-      if(dm&&right&&dm.parentElement!==right){
-        right.insertBefore(dm,right.firstChild);
-        dm.style.cssText='';
-        return true;
-      }
-    }catch(e){}
-    return false;
-  };
-  // 观察器持续运行:退出全屏等场景 ArtPlayer 会重建控制条把按钮组重置回默认位置,随时移回
-  try{
-    const box=document.getElementById('artContainer');
-    const obs=new MutationObserver(()=>{moveDm();});
-    obs.observe(box,{childList:true,subtree:true});
-  }catch(e){}
-  moveDm();
+  setupDmButtonGroup('artContainer');  // 弹幕按钮组移入时长条右侧(公共逻辑)
   art.on('subtitleLoad',hideSubLoading);
   bindFullscreenRotate(art);
-  // 诊断:弹幕显示区域实际尺寸
-  setTimeout(()=>{
-    try{
-      const box=document.getElementById('artContainer');
-      const app=box.querySelector('.artplayer-app');
-      const cv=box.querySelector('.art-danmuku')||box.querySelector('canvas');
-      const p=art.plugin&&art.plugin.danmuku;
-      const mt=p&&p.marginTop?p.marginTop():'?';
-      const mb=p&&p.marginBottom?p.marginBottom():'?';
-      console.log('[DM-AREA] 弹幕画布=',cv?Math.round(cv.getBoundingClientRect().width)+'x'+Math.round(cv.getBoundingClientRect().height):'?',
-        'marginTop='+mt,'marginBottom='+mb,
-        'app=',app?Math.round(app.getBoundingClientRect().width)+'x'+Math.round(app.getBoundingClientRect().height):'?');
-    }catch(e){console.log('[DM-AREA] err='+e.message);}
-  },600);
   return art;
 }
 function play(row,url){
@@ -313,15 +267,8 @@ function dmPickPage(v,p){
   closeDmMatch();
   dmSt('B站加载中...');
   fetch('/bili?action=dm&cid='+p.cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
-    if(!xml||xml.indexOf('<d')<0){dmSt('无弹幕');return;}
-    const doc=new DOMParser().parseFromString(xml,'text/xml');
-    const ds=doc.querySelectorAll('d[p]');
-    dmList=[];
-    ds.forEach(d=>{
-      const pp=d.getAttribute('p').split(',');
-      const m=+pp[1]||1;const col=+pp[3]||16777215;
-      dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+pp[0]||0});
-    });
+    dmList=parseBiliDm(xml);
+    if(!dmList.length){dmSt('无弹幕');return;}
     dmSource={bvid:v.bvid,cid:p.cid};
     dmSt('B站:'+dmList.length);
     if(dmList.length)rebuildPlayer();
@@ -369,15 +316,8 @@ function dmFromVideo(v,ep){
     dmSource={bvid:v.bvid,cid:cid};  // 在 cid 作用域内记录来源
     return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'});
   }).then(r=>r&&r.text()).then(xml=>{
-    if(!xml||xml.indexOf('<d')<0)return false;
-    const doc=new DOMParser().parseFromString(xml,'text/xml');
-    const ds=doc.querySelectorAll('d[p]');
-    dmList=[];
-    ds.forEach(d=>{
-      const p=d.getAttribute('p').split(',');
-      const m=+p[1]||1;const col=+p[3]||16777215;
-      dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+p[0]||0});
-    });
+    dmList=parseBiliDm(xml);
+    if(!dmList.length)return false;
     console.log('[DM] 弹幕条数='+dmList.length);
     dmSt('B站:'+dmList.length);
     if(dmList.length)rebuildPlayer();
