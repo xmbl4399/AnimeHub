@@ -99,13 +99,13 @@ case "$A" in
       cat "$CF"
       exit 0
     fi
-    # 搜索:B 站对搜索接口间歇风控(HTML 出错页);16 秒窗口内持续重试,成功即返回
+    # 搜索:B 站对搜索接口间歇风控(HTML 出错页/弱结果);16 秒窗口内持续重试,code:0 才算成功
     R=""
     END=$(( $(date +%s) + 16 ))
     while [ $(date +%s) -lt $END ]; do
-      R=$(curl -s --compressed -m 5 "https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=$KW" \
+      R=$(curl -s --compressed -m 5 -G 'https://api.bilibili.com/x/web-interface/search/type' --data-urlencode 'search_type=video' --data-urlencode "keyword=$KW" \
         -H "User-Agent: $UA" -H 'Referer: https://www.bilibili.com/' -b "$CKB" -c "$JAR")
-      if printf '%s' "$R" | head -c 1 | grep -q '{'; then
+      if printf '%s' "$R" | grep -q '"code":0'; then
         printf '%s' "$R" > "$CF" 2>/dev/null
         date +%s > "$TS" 2>/dev/null
         printf '%s' "$R"
