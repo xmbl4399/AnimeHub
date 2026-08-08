@@ -563,7 +563,14 @@ async function getAnimeMeta(title,hint){
       if(!r.ok)continue;
       const j=await r.json();
       if(j.list&&j.list.length){
-        const m=await fetchBgmMeta(j.list[0].id,key);
+        // 文件带季号时,在结果里按季数选条目(bgm 搜索常把第二季排第一,不取 list[0] 防串季)
+        let hit=j.list[0];
+        const season=parseAnime(title).season;
+        if(season){
+          const sw=new RegExp('第'+cnSeason(season)+'季|Season\\s*'+season+'\\b|S'+season+'\\b','i');
+          hit=j.list.find(x=>sw.test(String(x.name||'')+' '+String(x.name_cn||'')))||j.list[0];
+        }
+        const m=await fetchBgmMeta(hit.id,key);
         if(m)return m;
       }
     }catch(e){}
