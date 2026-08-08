@@ -149,6 +149,39 @@ function probeStream(u){
     L('PROBE status='+r.status,'type='+ct,'len='+cl,'range='+cr,'body='+buf.byteLength+'B','head16='+hex);
   }).catch(e=>L('PROBE error =',e.message));
 }
+function makePlayer(u,danmu){
+  if(biliArt){biliArt.destroy();biliArt=null;}
+  L('创建 ArtPlayer,url =',u,'弹幕 =',danmu.length);
+  biliArt=new Artplayer({
+    container:document.getElementById('artBox'),
+    url:u,
+    autoplay:true,
+    autoSize:true,
+    fullscreen:true,
+    fullscreenWeb:true,
+    theme:'#ffd700',
+    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,antiOverlap:true,visible:true,emitter:false})]
+  });
+  biliArt.on('ready',()=>L('ArtPlayer ready,duration =',biliArt.duration));
+  biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
+  ['loadedmetadata','canplay','playing','waiting','stalled','suspend','emptied','abort','error'].forEach(ev=>{
+    biliArt.on('video:'+ev,(e)=>{
+      const v=biliArt.video;
+      L('EVT video:'+ev,'rs='+v.readyState,'ns='+v.networkState,ev==='error'?(v.error?('code='+v.error.code+' msg='+v.error.message):'no error obj'):'');
+    });
+  });
+}
+function fetchDm(cid){
+  return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
+    const m=[...xml.matchAll(/<d p="([^"]*)">([^<]*)<\/d>/g)];
+    L('弹幕条数 =',m.length);
+    return m.map(x=>{
+      const a=x[1].split(',');
+      const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
+      return {time:+a[0]||0,text:x[2],color:color,mode:a[1]==4?1:a[1]==5?2:0};
+    });
+  });
+}
 function playBili(v,page,cid){
   L('playBili',v.bvid,'page',page,'cid',cid||'');
   document.getElementById('playerArea').style.display='block';
@@ -167,60 +200,18 @@ function playBili(v,page,cid){
     const u='/bili-stream2?bvid='+v.bvid+'&cid='+c;
     L('stream url =',u);
     probeStream(u);
-    if(biliArt){biliArt.destroy();biliArt=null;}
-    L('创建 ArtPlayer,url =',u);
-    biliArt=new Artplayer({
-      container:document.getElementById('artBox'),
-      url:u,
-      autoplay:true,
-      autoSize:true,
-      fullscreen:true,
-      fullscreenWeb:true,
-      theme:'#ffd700',
-      plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve([]),speed:8,opacity:.9,antiOverlap:true,visible:true,emitter:false})]
+    // 先拉弹幕再创建播放器,弹幕用插件配置方式注入(不依赖插件实例 API)
+    return fetchDm(c).then(dm=>{
+      L('弹幕就绪,创建播放器');
+      makePlayer(u,dm);
+    }).catch(e=>{
+      L('弹幕失败,仍播放视频:',e.message);
+      makePlayer(u,[]);
     });
-    biliArt.on('ready',()=>L('ArtPlayer ready,duration =',biliArt.duration));
-    biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
-    ['loadedmetadata','canplay','playing','waiting','stalled','suspend','emptied','abort','error'].forEach(ev=>{
-      biliArt.on('video:'+ev,(e)=>{
-        const v=biliArt.video;
-        L('EVT video:'+ev,'rs='+v.readyState,'ns='+v.networkState,ev==='error'?(v.error?('code='+v.error.code+' msg='+v.error.message):'no error obj'):'');
-      });
-    });
-    return loadBiliDanmu(c);
   }).catch(e=>{
     L('ERROR =',e.message);
     document.getElementById('st').textContent='播放失败:'+e.message;
   });
-}
-function loadBiliDanmu(cid){
-  L('拉弹幕 cid =',cid);
-  return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
-    const m=[...xml.matchAll(/<d p="([^"]*)">([^<]*)<\/d>/g)];
-    L('弹幕条数 =',m.length);
-    if(!biliArt||!m.length)return;
-    const danmu=m.map(x=>{
-      const a=x[1].split(',');
-      const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
-      return {time:+a[0]||0,text:x[2],color:color,mode:a[1]==4?1:a[1]==5?2:0};
-    });
-    let tries=0;
-    const tryLoad=()=>{
-      if(!biliArt)return;
-      const plg=biliArt.plugin||{};
-      const pdm=plg.danmuku||plg.artplayerPluginDanmuku;
-      if(pdm&&pdm.load){
-        try{pdm.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
-        catch(e){L('弹幕 load 异常 =',e.message);}
-      }else if(tries++<20){
-        if(tries===1||tries%5===0)L('插件未就绪 keys='+Object.keys(plg)+' 第'+tries+'次重试');
-        setTimeout(tryLoad,400);
-      }else{
-        L('插件始终不可用,keys =',Object.keys(plg));
-      }
-    };
-    tryLoad();
-  }).catch(e=>L('弹幕请求失败 =',e.message));
 }
 function renderPages(v,pages,cur){
   const box=document.getElementById('pages');
