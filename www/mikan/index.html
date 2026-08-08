@@ -751,11 +751,11 @@ async function biliPlayVideo(v,page,cid){
     }catch(e){}
     return false;
   };
+  // 观察器持续运行:退出全屏等场景 ArtPlayer 会重建控制条把按钮组重置回默认位置,随时移回
   try{
     const box=document.getElementById('biliBox');
-    const obs=new MutationObserver(()=>{if(moveDm())obs.disconnect();});
+    const obs=new MutationObserver(()=>{moveDm();});
     obs.observe(box,{childList:true,subtree:true});
-    setTimeout(()=>obs.disconnect(),8000);  // 兜底:8s 后停止观察
   }catch(e){}
   moveDm();  // 立即尝试一次(若 DOM 已就绪)
   bindFullscreenRotate(biliArt);
