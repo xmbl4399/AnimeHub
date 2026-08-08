@@ -15,12 +15,19 @@ async function run(){
   // ② 模拟 parseAnime 提取标题
   var nm=v.name.split('/').pop();
   var title=nm.replace(/\.[^.]+$/,'').replace(/^\[[^\]]*\]\s*/,'').replace(/[-_]\s*\d{1,2}\s*$/,'').replace(/\s*S\d{1,2}\s*$/i,'').replace(/[\[\]【】]/g,'').trim();
-  L('② 提取标题:',title);
-  // ③ 搜索(模拟 loadBiliDm 第一步)
+  L('② 提取标题(文件名):',title);
+  // ②b 模拟 dmSearchTitle:查 anm:v8 缓存拿 bgm 中文名(与 anime 页同源,直接读)
+  var searchKw=title;
+  try{
+    var c=localStorage.getItem('anm:v8:'+title);
+    if(c){var o=JSON.parse(c);if(o.name){searchKw=o.name;L('②b bgm中文名(anm:v8缓存):',searchKw);}}
+  }catch(e){}
+  if(searchKw===title)L('②b 无bgm缓存,回落文件名标题搜索');
+  // ③ 搜索(模拟 loadBiliDm 第一步,用中文名)
   var t0=performance.now();
   var sj;
   try{
-    var sr=await fetch('/bili?action=search&kw='+encodeURIComponent(title),{cache:'no-store'});
+    var sr=await fetch('/bili?action=search&kw='+encodeURIComponent(searchKw),{cache:'no-store'});
     var ct=sr.headers.get('content-type')||'';
     L('③ 搜索响应:HTTP '+sr.status,'content-type='+ct,'耗时='+Math.round(performance.now()-t0)+'ms');
     sj=await sr.json();
