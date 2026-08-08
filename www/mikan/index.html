@@ -434,12 +434,12 @@ function biliClose(){
   if(biliArt){biliArt.destroy();biliArt=null;}
   $('#biliPages').innerHTML='';
 }
-function renderBiliResults(list){
+function renderBiliResults(list,collapsed){
   const box=$('#biliResults');
   lastBiliList=list||[];
-  box.style.display='block';
+  box.style.display=collapsed?'none':'block';
   $('#biliTg').style.display='';
-  $('#biliTg').textContent='收起';
+  $('#biliTg').textContent=collapsed?'展开':'收起';
   box.innerHTML='';
   (list||[]).slice(0,12).forEach(v=>{
     const d=document.createElement('div');d.className='bitem';
@@ -543,7 +543,7 @@ async function biliPlay(){
     curBvid=v.bvid;
     blog('biliPlay 选中='+v.title.replace(/<\/?em[^>]*>/g,''),'bvid='+v.bvid);
     $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
-    renderBiliResults(list);  // 渲染搜索结果列表(带折叠按钮+当前项黄框)
+    renderBiliResults(list,true);  // 渲染结果列表,默认收起(展开按钮显示)
     biliPlayVideo(v,1,null);
   }catch(e){blog('biliPlay 失败 ='+e.message);toast('B 站播放失败: '+e.message,'err');}
 }
