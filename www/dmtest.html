@@ -3,6 +3,32 @@
 <div id=log style="white-space:pre-wrap;max-height:92vh;overflow:auto;border:1px solid #444;padding:10px"></div>
 <script>
 var L=function(){var s=[].map.call(arguments,function(x){return (typeof x==='object'&&x!==null)?(function(){try{return JSON.stringify(x);}catch(e){return String(x);}})():String(x);}).join(' ');console.log('[DMFLOW]',s);var d=document.getElementById('log');d.textContent+='\n'+s;d.scrollTop=d.scrollHeight;};
+// parseAnime:与 anime.html 同款(测试页复制)
+function parseAnime(name){
+  var s=name.replace(/\.[^.]+$/,'');
+  s=s.replace(/\([0-9A-Fa-f]{8,}\)\s*$/,'');
+  var ep=null;
+  var m1=s.match(/S\d{1,2}E(\d{1,2})/i);
+  if(m1)ep=+m1[1];
+  else{var m2=s.match(/[\[-](\d{1,2})[\])-]/)||s.match(/-\s*(\d{1,2})\s*\[/);if(m2&&+m2[1]>0&&+m2[1]<=99)ep=+m2[1];}
+  var parts=s.split(/(\[[^\]]*\])/g).filter(Boolean);
+  var outside=parts.filter(function(p){return p.charAt(0)!=='[';});
+  var blocks=parts.filter(function(p){return p.charAt(0)==='[';}).map(function(b){return b.slice(1,-1);});
+  var kw;
+  if(outside.length){
+    kw=outside.join(' ');
+    kw=kw.replace(/\(([^)]*)\)/g,function(mm,inner){return /CR|WEB|AVC|HEVC|1080|720|480|MKV|MP4|AAC|X26|H26|10BIT|8BIT/i.test(inner)?' ':mm;});
+  }else{
+    var QUAL=/^(webrip|web_dl|web|hdtv|bd|dvd|bluray|hevc|avc|hevc_aac|avc_aac|h264_aac|x264|x265|h264|h265|hevc_10bit|hevc10bit|10bit|1080p|720p|480p|2160p|4k|8bit|aac|flac|opus|av1|av1_opus|gb_cn|gb|cn|chs|cht|jp|sc|tc|sc_tc|chs_cht|chs_jp|cht_jp|chs_cht_jp|简日|繁日|简繁|内嵌|简体内嵌|pgs|ass|sub|v\d+)$/i;
+    kw=blocks.slice(1).filter(function(b){return !QUAL.test(b.replace(/\s/g,''))&&!/^\d{3,4}$/.test(b)&&!/^\d{1,2}$/.test(b);}).join(' ');
+  }
+  kw=kw.replace(/S\d{1,2}E\d{1,2}/i,' ');
+  kw=kw.replace(/[-_\s]+\d{1,2}\s*$/,'');
+  kw=kw.replace(/^\d{1,2}\s*[-_\s]+/,'');
+  kw=kw.replace(/[-_.]{2,}/g,' ').replace(/\s+-\s+/g,' ').replace(/\s+/g,' ').replace(/[\s\-_.]+$/,'').replace(/^[\s\-_.]+/,'').trim();
+  if(!kw)kw='(其他)';
+  return {title:kw,ep:ep};
+}
 async function run(){
   L('===== 弹幕匹配完整流程测试 =====');
   L('时间:',new Date().toLocaleTimeString());
@@ -12,10 +38,14 @@ async function run(){
   var v=fs.find(function(x){return /\.(mkv|mp4|webm)$/i.test(x.name);});
   if(!v){L('① 没有视频');return;}
   L('① 测试视频:',v.name);
-  // ② 模拟 parseAnime 提取标题
+  // ② 模拟 parseAnime(与 anime 页同款:剥离组名/集数/质量块)
   var nm=v.name.split('/').pop();
-  var title=nm.replace(/\.[^.]+$/,'').replace(/^\[[^\]]*\]\s*/,'').replace(/[-_]\s*\d{1,2}\s*$/,'').replace(/\s*S\d{1,2}\s*$/i,'').replace(/[\[\]【】]/g,'').trim();
-  L('② 提取标题(文件名):',title);
+  var title=parseAnime(nm).title||nm;
+  L('② 提取标题(parseAnime):',title);
+  // ②a 打印 anm:v8 缓存 key(诊断为什么拿不到中文名)
+  var keys=[];
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('anm:v8:')===0)keys.push(k);}}catch(e){}
+  L('②a anm:v8 缓存条数:',keys.length,keys.slice(0,8).map(function(k){return k.slice(7);}).join(' | '));
   // ②b 模拟 dmSearchTitle:查 anm:v8 缓存拿 bgm 中文名(与 anime 页同源,直接读)
   var searchKw=title;
   try{
