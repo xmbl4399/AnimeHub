@@ -128,7 +128,7 @@ function loadSub(url){
   fetch('/sub?action=probe&path='+url,{cache:'no-store'})
     .then(r=>r.json()).then(j=>{
       const subs=(j.streams||[]).filter(s=>/subrip|ass|srt|webvtt/i.test(s.codec_name));
-      if(subs.length&&art)art.subtitle.switch('/sub?action=get&path='+url+'&i='+subs[0].index,'vtt');
+      if(subs.length&&art)art.subtitle.switch('/sub?action=get&path='+url+'&i='+subs[0].index,{type:'vtt'});
     }).catch(()=>{});
 }
 function createPlayer(url,danmu,opts){
