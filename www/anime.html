@@ -208,18 +208,39 @@ function dmDoSearch(){
   const box=document.getElementById('dmResults');
   if(!q){box.innerHTML='<div class=dm-empty>请输入番名</div>';return;}
   box.innerHTML='<div class=dm-empty>搜索中...</div>';
-  fetch('/dandan/api/v2/search/episodes?anime='+encodeURIComponent(q),{cache:'no-store'})
+  fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
     .then(r=>r.json()).then(j=>{
-      const list=j.animes||[];
+      const list=(j.data&&j.data.result)||[];
       if(!list.length){box.innerHTML='<div class=dm-empty>无匹配结果,换个名字试试</div>';return;}
       box.innerHTML='';
-      list.forEach(a=>{
+      list.slice(0,20).forEach(v=>{
+        const t=v.title.replace(/<\/?em[^>]*>/g,'');
         const d=document.createElement('div');d.className='dm-item';
-        d.innerHTML='<span>'+esc(a.animeTitle)+'</span><span class=c>'+((a.episodes||[]).length)+' 集</span>';
-        d.onclick=()=>dmShowEps(a);
+        d.innerHTML='<span>'+esc(t)+'</span><span class=c>'+esc(v.author)+' · '+v.danmaku+'弹</span>';
+        d.onclick=()=>dmPickBili(v);
         box.appendChild(d);
       });
     }).catch(()=>{box.innerHTML='<div class=dm-empty>搜索失败</div>';});
+}
+function dmPickBili(v){
+  dmList=[];dmTitle=v.title.replace(/<\/?em[^>]*>/g,'');
+  closeDmMatch();
+  dmBtnLabel('B站加载中...');
+  const page=(parseAnime(document.getElementById('pTitle').textContent)||{}).ep||1;
+  fetch('/bili?action=dm&bvid='+v.bvid+'&page='+page,{cache:'no-store'})
+    .then(r=>r.text()).then(xml=>{
+      if(!xml||xml.indexOf('<d')<0){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,2500);return;}
+      const doc=new DOMParser().parseFromString(xml,'text/xml');
+      const ds=doc.querySelectorAll('d[p]');
+      dmList=[];
+      ds.forEach(d=>{
+        const p=d.getAttribute('p').split(',');
+        const m=+p[1]||1;const col=+p[3]||16777215;
+        dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+p[0]||0});
+      });
+      dmBtnLabel('B站:'+dmList.length);
+      if(dmOn&&dmList.length)rebuildPlayer();
+    }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,2500);});
 }
 function dmShowEps(a){
   const box=document.getElementById('dmResults');
@@ -256,13 +277,8 @@ function dmPick(a,ep){
 }
 function loadDm(title,ep){
   dmTitle=title;
-  dmBtnLabel('匹配中...');
-  fetch('/dandan/api/v2/search/episodes?anime='+encodeURIComponent(title),{cache:'no-store'})
-    .then(r=>r.json()).then(j=>{
-      const a=(j.animes||[])[0];
-      if(!a){dmBtnLabel('弹弹无匹配,试B站...');loadBiliDm(title,ep);return;}
-      dmPick(a,ep);
-    }).catch(()=>{dmBtnLabel('搜索失败,试B站...');loadBiliDm(title,ep);});
+  dmBtnLabel('B站匹配中...');
+  loadBiliDm(title,ep);
 }
 // B 站弹幕源(个人上传番剧):搜索 → 匹配正片/合集 → pagelist cid → dm XML → 转插件格式
 function loadBiliDm(title,ep){
