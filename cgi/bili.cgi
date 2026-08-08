@@ -79,7 +79,7 @@ case "$A" in
     printf '%s' "$BODY"
     ;;
   logout)
-    rm -f "$LGN"
+    rm -f "$LGN" "$JAR" "$CKB"
     echo "Content-Type: text/plain; charset=utf-8"
     echo ""
     echo "ok"

@@ -33,7 +33,7 @@ case "$A" in
     echo "{\"ok\":true,\"isLogin\":$IL,\"uname\":\"$UN\"}"
     ;;
   biliLogout)
-    rm -f /etc/bili-login.txt
+    rm -f /etc/bili-login.txt /tmp/bili-cookie.txt /tmp/bili-cook.txt
     echo '{"ok":true}'
     ;;
   apply)
