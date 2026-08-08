@@ -137,21 +137,23 @@ function renderResults(list){
     box.appendChild(d);
   });
 }
-// 智能匹配:番名去修饰字(篇/季/话/集)后核心串匹配,合集/第1话优先,滤 OP/解说;播放/弹幕高权重
+// 智能匹配:核心串匹配 + 4字窗口兼容变体/简称,合集/第1话优先,滤 OP/解说;播放/弹幕高权重
 function pickBest(list,kw){
   const clean=t=>t.replace(/<\/?em[^>]*>/g,'');
   const strip=s=>s.replace(/[^\u4e00-\u9fa5]/g,'').replace(/[篇季話话集]/g,'');
   const k=strip(kw||'');
+  const wins=[];
+  for(let i=0;i+4<=k.length;i++)wins.push(k.slice(i,i+4));
   let best=null,bestScore=-1;
   list.slice(0,15).forEach(v=>{
-    const t=clean(v.title);
-    if(!strip(t).includes(k))return;             // 核心串匹配(去"篇/季"等修饰字,简称也命中)
+    const t=clean(v.title),t2=strip(t);
+    if(!t2.includes(k)&&!(wins.length&&wins.some(w=>t2.includes(w))))return;  // 完整或4字窗口匹配(兼容变体)
     let score=50;
     if(/全\d+[话集話]|全集|合集|\d+\s*[-~—～]\s*\d+\s*[集话話]/.test(t))score+=100;  // 合集/多集
     if(/第\s*1\s*[话集話]|第0?1话|[\[(]0?1[\]）)]/.test(t))score+=30;  // 单集第1话
     if(/SP|预告|OP|ED|MAD|解说|杂谈|吐槽|盘点|剪辑|纯音乐|NCOP|NCED|主题曲|名场面|歌词/.test(t))score-=70; // 非正片减分
-    score+=Math.log10((v.play||0)+10)*18;            // 播放量权重(高)
-    score+=Math.log10((v.danmaku||0)+10)*12;         // 弹幕量权重(高)
+    score+=Math.log10((v.play||0)+10)*22;            // 播放量权重(高)
+    score+=Math.log10((v.danmaku||0)+10)*15;         // 弹幕量权重(高)
     if(score>bestScore){bestScore=score;best=v;}
   });
   return best||list[0];
