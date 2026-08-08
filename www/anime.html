@@ -317,6 +317,8 @@ function dmPick(a,ep){
 }
 function loadDm(title,ep){
   dmTitle=title;dmCurEp=ep||undefined;
+  console.log('[DM] loadDm: title='+title,'ep='+ep);
+  console.log('[DM] 搜索词(bgm中文名): '+dmSearchTitle(title));
   dmBtnLabel('B站匹配中...');
   loadBiliDm(title,ep);
 }
@@ -335,11 +337,14 @@ function matchPart(pages,ep){
 }
 // 从视频拉弹幕:pagelist 解析分P → 匹配集数 → dm(cid) → 转插件格式
 function dmFromVideo(v,ep){
+  console.log('[DM] dmFromVideo: bvid='+v.bvid,'ep='+ep);
   return fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'}).then(r=>r.json()).then(j=>{
     const pages=j.data||[];
+    console.log('[DM] pagelist: 分P数='+pages.length);
     if(!pages.length)return null;
     const idx=matchPart(pages,ep);
     const cid=pages[idx]&&pages[idx].cid;
+    console.log('[DM] 分P匹配: idx='+idx,'cid='+cid,'part='+(pages[idx]?pages[idx].part:'?'));
     if(!cid)return null;
     return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'});
   }).then(r=>r&&r.text()).then(xml=>{
@@ -352,6 +357,7 @@ function dmFromVideo(v,ep){
       const m=+p[1]||1;const col=+p[3]||16777215;
       dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+p[0]||0});
     });
+    console.log('[DM] 弹幕条数='+dmList.length);
     dmSource={bvid:v.bvid,cid:cid};
     dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
@@ -359,13 +365,17 @@ function dmFromVideo(v,ep){
   });
 }
 function loadBiliDm(title,ep){
+  const t0=performance.now();
   dmBtnLabel('B站匹配中(最长16秒)...');
+  console.log('[DM] 搜索发起: kw='+dmSearchTitle(title),'ep='+ep);
   fetch('/bili?action=search&kw='+encodeURIComponent(dmSearchTitle(title)),{cache:'no-store'})
     .then(r=>{
+      console.log('[DM] 搜索响应: HTTP '+r.status,'耗时='+Math.round(performance.now()-t0)+'ms','ct='+(r.headers.get('content-type')||''));
       if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控拦截');
       return r.json();
     }).then(j=>{
       const list=(j.data&&j.data.result)||[];
+      console.log('[DM] 搜索 code='+j.code,'结果数='+list.length);
       if(!list.length){dmBtnLabel('B站无结果');setTimeout(dmBtnLabel,6000);return;}
       let v=null;
       if(ep){
@@ -373,10 +383,15 @@ function loadBiliDm(title,ep){
         v=list.find(x=>/第.+[话集話]|E[Pp]?\d|SP/i.test(x.title)&&re.test(x.title))||null;
       }
       if(!v)v=list.find(x=>/全集|全\d+[话集話]|合集|全.*话/i.test(x.title))||list[0];
+      console.log('[DM] 候选视频: '+v.bvid+' | '+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,40)+' | '+v.danmaku+'弹');
       return dmFromVideo(v,ep);
     }).then(ok=>{
+      console.log('[DM] 弹幕加载结果: '+(ok===true?'成功':'无弹幕/失败'));
       if(ok===false||ok===null){dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
-    }).catch(()=>{dmBtnLabel('B站匹配失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);});
+    }).catch(e=>{
+      console.log('[DM] 搜索失败: '+e.message,'耗时='+Math.round(performance.now()-t0)+'ms');
+      dmBtnLabel('B站匹配失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);
+    });
 }
 
 function parseAnime(name){
