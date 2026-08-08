@@ -671,6 +671,7 @@ async function biliPlay(){
 async function biliPlayVideo(v,page,cid){
   blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
   $('#biliArea').style.display='block';  // 关闭过播放器后,再点结果要重新显示
+  $('#biliTitle').textContent='B 站:'+(v.title||'').replace(/<\/?em[^>]*>/g,'').slice(0,55);  // 跟随实际选择
   page=page||1;
   let c=cid;
   if(!c){
