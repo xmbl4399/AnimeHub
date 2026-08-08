@@ -322,8 +322,16 @@ function loadDm(title,ep){
 }
 // 刮削中文名(anm:v8 缓存里的 bgm name)搜索更准;无缓存回落文件名标题
 function dmSearchTitle(title){
-  try{const c=localStorage.getItem('anm:v8:'+title);if(c){const o=JSON.parse(c);if(o.name)return o.name;}}catch(e){}
-  return title;
+  let base=title;
+  try{const c=localStorage.getItem('anm:v8:'+title);if(c){const o=JSON.parse(c);if(o.name)base=o.name;}}catch(e){}
+  // 季数修正:文件季号与中文名季号不符时,用文件季号覆盖(第三季文件不被搜成第二季)
+  try{
+    const p=parseAnime(title);
+    if(p.season&&/第[一二三四五六七八九十百\d]+季/.test(base)){
+      base=base.replace(/第[一二三四五六七八九十百\d]+季/g,'第'+cnSeason(p.season)+'季');
+    }
+  }catch(e){}
+  return base;
 }
 // 分P 匹配:优先按 part 标题里的集数(第X话/EPX/X话),匹配不到按顺序
 function matchPart(pages,ep){
@@ -376,7 +384,18 @@ function loadBiliDm(title,ep){
       console.log('[DM] 搜索 code='+j.code,'结果数='+list.length);
       if(!list.length){dmSt('B站无结果');return;}
       let v=null;
-      if(ep){
+      // 季数优先:文件有季号时,先在同季结果里选(合集>指定集>其他)
+      const season=parseAnime(title).season;
+      if(season){
+        const sw='第'+cnSeason(season)+'季';
+        const sv=list.filter(x=>String(x.title||'').indexOf(sw)>-1);
+        if(sv.length){
+          v=sv.find(x=>/全集|全\d+[话集話]|合集|全.*话/i.test(x.title))
+            ||(ep?sv.find(x=>/第.+[话集話]/.test(x.title)&&new RegExp('第\\s*'+ep+'\\s*[话集話]').test(x.title)):null)
+            ||sv[0];
+        }
+      }
+      if(!v&&ep){
         const re=new RegExp('第\\s*'+ep+'\\s*[话集話]|E[Pp]?0?'+ep+'|\\b'+ep+'\\b');
         v=list.find(x=>/第.+[话集話]|E[Pp]?\d|SP/i.test(x.title)&&re.test(x.title))||null;
       }
@@ -392,6 +411,17 @@ function loadBiliDm(title,ep){
     });
 }
 
+function cnSeasonNum(cn){
+  if(/^\d+$/.test(cn))return parseInt(cn,10);
+  const map={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'十一':11,'十二':12,'十三':13,'十四':14,'十五':15,'二十':20,'二十一':21};
+  return map[cn]||null;
+}
+function cnSeason(n){
+  const cn=['','一','二','三','四','五','六','七','八','九','十'];
+  if(n>=1&&n<=10)return cn[n];
+  if(n>10&&n<20)return '十'+(n>10?cn[n-10]:'');
+  return String(n);
+}
 function parseAnime(name){
   let s=name.replace(/\.[^.]+$/,'');
   s=s.replace(/\([0-9A-Fa-f]{8,}\)\s*$/,'');
@@ -399,6 +429,15 @@ function parseAnime(name){
   const m1=s.match(/S\d{1,2}E(\d{1,2})/i);
   if(m1)ep=+m1[1];
   else{const m2=s.match(/[\[-](\d{1,2})[\])-]/)||s.match(/-\s*(\d{1,2})\s*\[/);if(m2&&+m2[1]>0&&+m2[1]<=99)ep=+m2[1];}
+  // 季数提取:S3 / Season 3 / 第三季 / 第3季
+  let season=null;
+  const ms=s.match(/(S\d{1,2}|Season\s*\d{1,2}|第[一二三四五六七八九十百\d]+季)/i);
+  if(ms){
+    const sv=ms[1].toUpperCase();
+    if(/^S\d+/.test(sv))season=parseInt(sv.slice(1),10);
+    else if(/^SEASON\s*\d+/.test(sv))season=parseInt(sv.replace(/\D/g,''),10);
+    else{const mm=sv.match(/[一二三四五六七八九十百\d]+/);if(mm)season=cnSeasonNum(mm[0]);}
+  }
   const parts=s.split(/(\[[^\]]*\])/g).filter(Boolean);
   const outside=parts.filter(p=>!p.startsWith('['));
   const blocks=parts.filter(p=>p.startsWith('[')).map(b=>b.slice(1,-1));
@@ -415,7 +454,7 @@ function parseAnime(name){
   kw=kw.replace(/^\d{1,2}\s*[-_\s]+/,'');
   kw=kw.replace(/[-_.]{2,}/g,' ').replace(/\s+-\s+/g,' ').replace(/\s+/g,' ').replace(/[\s\-_.]+$/,'').replace(/^[\s\-_.]+/,'').trim();
   if(!kw)kw='(其他)';
-  return {title:kw,ep};
+  return {title:kw,ep,season};
 }
 // ==== 番剧视图(按番名分组) ====
 let expandedAnime=null;
