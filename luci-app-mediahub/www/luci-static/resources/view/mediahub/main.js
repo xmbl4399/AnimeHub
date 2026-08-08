@@ -31,6 +31,15 @@ return view.extend({
 		o.rmempty = false;
 		o.optional = false;
 
+		o = s.option(form.Value, 'dandan_appid', _('弹弹play AppId'), _('影视库弹幕 API 认证(DevCenter 申请);保存后点「立即应用」写入 nginx 反代'));
+		o.rmempty = false;
+		o.optional = false;
+
+		o = s.option(form.Value, 'dandan_secret', _('弹弹play AppSecret'), _('与 AppId 配套;应用后立即生效(nginx reload)'));
+		o.password = true;
+		o.rmempty = false;
+		o.optional = false;
+
 		// ---- 操作面板:状态 + 按钮 + 输出(全部用变量引用,避免 DOM 未插入时的 null 访问) ----
 		var status = E('div', { 'id': 'mh-status' }, _('加载中...'));
 		var out = E('pre', {

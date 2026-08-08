@@ -130,7 +130,7 @@ function createPlayer(url,danmu,opts){
     autoSize:false,aspectRatio:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
     plugins:[artplayerPluginDanmuku({
       danmuku:()=>Promise.resolve(danmu||[]),
-      speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false
+      speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false,margin:["37.5%","25%"]
     })]
   },opts||{}));
   return art;

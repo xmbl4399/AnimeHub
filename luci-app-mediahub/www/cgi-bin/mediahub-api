@@ -25,6 +25,11 @@ case "$A" in
     P=$(printf '%s' "$P" | sed 's/\\/\\\\/g; s/"/\\"/g')
     echo "{\"pass\":\"$P\"}"
     ;;
+  getDandanKey)
+    A=$(uci get mediahub.@main[0].dandan_appid 2>/dev/null)
+    S=$(uci get mediahub.@main[0].dandan_secret 2>/dev/null)
+    echo "{\"appid\":\"$A\",\"secret\":\"$S\"}"
+    ;;
   apply)
     /usr/libexec/mediahub/apply.sh
     ;;
