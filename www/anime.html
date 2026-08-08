@@ -581,6 +581,11 @@ function renderAnime(){
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push({ep:p.ep,base:v.name.split('/').pop(),name:v.name,size:v.size});
   });
+  if(!groups.size){  // 空库:显示友好提示,不再白屏
+    document.getElementById('empty').textContent='还没有已下载的番剧,去「蜜柑」页挑一部下载吧';
+    document.getElementById('empty').style.display='block';
+    return;
+  }
   if(expandedAnime){
     const items=groups.get(expandedAnime)||[];
     box.innerHTML='';
