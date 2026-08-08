@@ -96,7 +96,7 @@ return view.extend({
 		var panel = E('div', { 'class': 'cbi-section', 'id': 'mh-panel', 'style': 'margin-top:12px' }, [
 			E('h3', { 'class': 'cbi-section-title' }, _('状态与操作')),
 			status,
-			E('div', { 'class': 'cbi-section-node', 'style': 'display:flex;flex-wrap:wrap;gap:8px;padding:8px 0' }, [
+			E('div', { 'class': 'cbi-section-node', 'style': 'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0' }, [
 				bApply, bDry, bGetDir, bRescan, bCache, bTest, bLog, bBili
 			]),
 			out
