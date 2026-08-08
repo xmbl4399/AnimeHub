@@ -91,14 +91,6 @@ return view.extend({
 		};
 
 		var panel = E('div', { 'class': 'cbi-section', 'id': 'mh-panel', 'style': 'margin-top:12px' }, [
-			// 服务主开关(OpenClash 风格:点即开/关,无提示)
-			E('div', { 'class': 'cbi-section-node', 'style': 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #2a3140' }, [
-				E('div', {}, [
-					E('div', { 'style': 'font-weight:600;font-size:14px' }, _('服务主开关')),
-					E('div', { 'style': 'color:#888;font-size:12px' }, _('关闭后停用页面反代与定时重扫;点击开关立即生效'))
-				]),
-				E('button', { 'class': 'btn cbi-button', 'id': 'mh-toggle', 'type': 'button', 'style': 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center' }, '…')
-			]),
 			E('h3', { 'class': 'cbi-section-title' }, _('状态与操作')),
 			status,
 			E('div', { 'class': 'cbi-section-node', 'style': 'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0' }, [
@@ -107,23 +99,20 @@ return view.extend({
 			out
 		]);
 
-		// 主开关状态与点击切换(即点即生效,不依赖保存/应用)
-		var togBtn = null;
+		// 主开关(OpenClash 风格:点即开/关),按钮放页面主标题 h2 右侧
+		var togBtn = E('button', { 'class': 'btn cbi-button', 'id': 'mh-toggle', 'type': 'button', 'style': 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;cursor:pointer' }, '…');
 		var updateToggle = function (en) {
-			if (!togBtn) togBtn = document.getElementById('mh-toggle');
 			if (!togBtn) return;
 			if (en == 1) {
 				togBtn.textContent = '● 运行中(点击关闭)';
-				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;background:#1b5e20;color:#fff;border:1px solid #2e7d32';
+				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;cursor:pointer;background:#1b5e20;color:#fff;border:1px solid #2e7d32';
 			} else {
 				togBtn.textContent = '● 已停止(点击开启)';
-				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;background:#b71c1c;color:#fff;border:1px solid #c62828';
+				togBtn.style.cssText = 'font-size:14px;font-weight:700;padding:8px 20px;border-radius:6px;min-width:130px;text-align:center;cursor:pointer;background:#b71c1c;color:#fff;border:1px solid #c62828';
 			}
 		};
 		var togglePending = false;
-		togBtn = E('button');  // 占位,事件绑定在渲染后
 		var bindToggle = function () {
-			togBtn = document.getElementById('mh-toggle');
 			if (!togBtn || togBtn._bound) return;
 			togBtn._bound = true;
 			togBtn.onclick = function () {
@@ -143,6 +132,15 @@ return view.extend({
 
 		return m.render().then(function (html) {
 			html.appendChild(panel);
+			// 主开关按钮放入页面主标题 h2 栏(标题右侧)
+			var h2 = html.querySelector('h2[name=content]');
+			if (h2) {
+				h2.style.display = 'flex';
+				h2.style.alignItems = 'center';
+				h2.style.gap = '14px';
+				h2.style.justifyContent = 'space-between';
+				h2.appendChild(togBtn);
+			}
 			bindToggle();
 			// 状态加载(节点已挂到 html,可直接操作)
 			api('getStatus').then(function (j) {
