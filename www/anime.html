@@ -121,7 +121,15 @@ let vids=[];
 function loadList(){fetch('/videos.json?t='+Date.now()).then(r=>r.json()).then(fs=>{vids=fs;renderAnime();}).catch(()=>document.getElementById('empty').style.display='block');}
 loadList();
 // ===== 播放器(ArtPlayer + dandanplay 弹幕)=====
-let art=null;
+let art=null,curUrl='';
+function loadSub(url){
+  if(!/\.(mkv|mka|mp4|webm)$/i.test(url)||!art)return;
+  fetch('/sub?action=probe&path='+encodeURIComponent(url),{cache:'no-store'})
+    .then(r=>r.json()).then(j=>{
+      const subs=(j.streams||[]).filter(s=>/subrip|ass|srt|webvtt/i.test(s.codec_name));
+      if(subs.length&&art)art.subtitle.switch('/sub?action=get&path='+encodeURIComponent(url)+'&i='+subs[0].index,'vtt');
+    }).catch(()=>{});
+}
 function createPlayer(url,danmu,opts){
   if(art){art.destroy();art=null;}
   art=new Artplayer(Object.assign({
@@ -140,7 +148,9 @@ function play(row,url){
   document.getElementById('pTitle').textContent=nm;
   document.getElementById('player').style.display='flex';
   dmList=[];dmTitle='';dmCurEp=0;
+  curUrl=url;
   createPlayer('/media/'+url,[],{autoplay:true});
+  loadSub(url);
   const p=parseAnime(nm);
   dmTitle=p.title||'';
   if(dmOn&&p.title&&p.title!=='(其他)')loadDm(p.title,p.ep);else dmBtnLabel();
@@ -172,6 +182,7 @@ function rebuildPlayer(){
   const t=art.currentTime,paused=art.paused,url=art.option.url;
   createPlayer(url,dmOn?dmList:[],{autoplay:false});
   art.on('ready',()=>{art.currentTime=t;if(!paused)art.play();});
+  if(curUrl)loadSub(curUrl);
 }
 function toggleDm(){dmOn=!dmOn;dmBtnLabel();rebuildPlayer();}
 function openDmMatch(){
