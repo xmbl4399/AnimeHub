@@ -47,6 +47,7 @@ return view.extend({
 		var bCache = mkBtn(_('清蜜柑缓存'), 'cbi-button-neutral');
 		var bTest = mkBtn(_('连通性测试'), 'cbi-button-neutral');
 		var bLog = mkBtn(_('查看 nginx 日志'), 'cbi-button-neutral');
+		var bBili = mkBtn(_('清除 B站登录'), 'cbi-button-reset');
 
 		var run = function (action, label) {
 			out.textContent = label + ' ...';
@@ -56,6 +57,21 @@ return view.extend({
 				out.textContent = label + '\n错误: ' + e;
 			});
 		};
+		// 状态栏里的 B站登录状态(独立拉取,清除登录后可刷新)
+		var loadBiliStatus = function () {
+			api('biliStatus').then(function (j) {
+				var el = document.getElementById('mh-bili');
+				if (!el) return;
+				if (j.isLogin === true) {
+					el.innerHTML = '<span style="color:#3ecf8e">● 已登录</span>' + (j.uname ? ' (' + j.uname + ')' : '');
+				} else {
+					el.innerHTML = '<span style="color:#ff6b6b">● 未登录</span> <span style="color:#888">(mikan 页播放时扫码)</span>';
+				}
+			}).catch(function () {
+				var el = document.getElementById('mh-bili');
+				if (el) el.textContent = '查询失败';
+			});
+		};
 
 		bApply.onclick = function () { run('apply', _('立即应用')); };
 		bDry.onclick = function () { run('applydry', _('预览(不修改)')); };
@@ -63,6 +79,13 @@ return view.extend({
 		bCache.onclick = function () { run('clearCache', _('清理蜜柑缓存')); };
 		bTest.onclick = function () { run('testConn', _('连通性测试')); };
 		bLog.onclick = function () { run('logTail', _('nginx 日志尾部')); };
+		bBili.onclick = function () {
+			out.textContent = _('清除 B站登录 ...');
+			api('biliLogout').then(function (j) {
+				out.textContent = _('B站登录已清除(下次在蜜柑页播放时重新扫码)') + '\n' + JSON.stringify(j);
+				loadBiliStatus();  // 刷新状态栏
+			}).catch(function (e) { out.textContent = _('清除失败: ') + e; });
+		};
 		bGetDir.onclick = function () {
 			api('getAria2Dir').then(function (j) {
 				out.textContent = _('aria2 当前下载目录: ') + (j.dir || '(未读取到)') +
@@ -74,7 +97,7 @@ return view.extend({
 			E('h3', { 'class': 'cbi-section-title' }, _('状态与操作')),
 			status,
 			E('div', { 'class': 'cbi-section-node', 'style': 'display:flex;flex-wrap:wrap;gap:8px;padding:8px 0' }, [
-				bApply, bDry, bGetDir, bRescan, bCache, bTest, bLog
+				bApply, bDry, bGetDir, bRescan, bCache, bTest, bLog, bBili
 			]),
 			out
 		]);
@@ -99,7 +122,9 @@ return view.extend({
 				status.innerHTML = 'aria2: ' + f(!!j.aria2) + '&nbsp; nginx: ' + f(!!j.nginx) +
 					'&nbsp; FileBrowser: <span style="color:' + (j.fb < 500 ? '#3ecf8e' : '#ff6b6b') + '">HTTP ' + j.fb + '</span>' +
 					'&nbsp; 网盘: <span style="color:' + (j.pan < 500 ? '#3ecf8e' : '#ff6b6b') + '">HTTP ' + j.pan + '</span>' +
+					'&nbsp; B站: <span id="mh-bili">检查中...</span>' +
 					'<br>' + _('主开关') + ': ' + (j.enabled == 1 ? _('开') : _('关')) + ' | ' + _('下载目录') + ': <code>' + j.dir + '</code> | ' + _('媒体根') + ': <code>' + j.root + '</code>';
+				loadBiliStatus();
 			});
 			return html;
 		});

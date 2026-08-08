@@ -25,6 +25,17 @@ case "$A" in
     P=$(printf '%s' "$P" | sed 's/\\/\\\\/g; s/"/\\"/g')
     echo "{\"pass\":\"$P\"}"
     ;;
+  biliStatus)
+    S=$(curl -s -m 10 'http://127.0.0.1/bili?action=login_status' 2>/dev/null)
+    IL=$(echo "$S" | grep -o '"isLogin":[a-z]*' | head -1 | cut -d: -f2)
+    UN=$(echo "$S" | grep -o '"uname":"[^"]*"' | head -1 | sed 's/"uname":"//;s/"//')
+    [ -n "$IL" ] || IL=false
+    echo "{\"ok\":true,\"isLogin\":$IL,\"uname\":\"$UN\"}"
+    ;;
+  biliLogout)
+    rm -f /etc/bili-login.txt
+    echo '{"ok":true}'
+    ;;
   apply)
     /usr/libexec/mediahub/apply.sh
     ;;
