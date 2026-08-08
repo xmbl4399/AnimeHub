@@ -204,11 +204,22 @@ function loadBiliDanmu(cid){
       const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
       return {time:+a[0]||0,text:x[2],color:color,mode:a[1]==4?1:a[1]==5?2:0};
     });
-    try{
-      const pdm=biliArt.plugin.danmuku||biliArt.plugin.artplayerPluginDanmuku;
-      if(pdm&&pdm.load){pdm.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
-      else L('弹幕插件实例未找到,plugin keys =',Object.keys(biliArt.plugin||{}));
-    }catch(e){L('弹幕 load 失败 =',e.message);}
+    let tries=0;
+    const tryLoad=()=>{
+      if(!biliArt)return;
+      const plg=biliArt.plugin||{};
+      const pdm=plg.danmuku||plg.artplayerPluginDanmuku;
+      if(pdm&&pdm.load){
+        try{pdm.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
+        catch(e){L('弹幕 load 异常 =',e.message);}
+      }else if(tries++<20){
+        if(tries===1||tries%5===0)L('插件未就绪 keys='+Object.keys(plg)+' 第'+tries+'次重试');
+        setTimeout(tryLoad,400);
+      }else{
+        L('插件始终不可用,keys =',Object.keys(plg));
+      }
+    };
+    tryLoad();
   }).catch(e=>L('弹幕请求失败 =',e.message));
 }
 function renderPages(v,pages,cur){
