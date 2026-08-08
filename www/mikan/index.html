@@ -319,7 +319,7 @@ function renderGroups(groups,name,meta){
   renderInfo(meta);
   const l=$('#listBody');l.innerHTML='';
   groups.forEach((g,gi)=>{
-    const grp=document.createElement('div');grp.className='grp'+(gi===0?' open':'');
+    const grp=document.createElement('div');grp.className='grp';  // 全部默认折叠
     const head=document.createElement('div');head.className='grp-head';
     head.innerHTML='<span class="gn"></span><span class="gmeta">'+(g.date?'更新 '+g.date:'')+(g.items.length?' · '+g.items.length+' 集':'')+'</span><span class="arrow">▾</span>';
     head.querySelector('.gn').textContent=g.name;
@@ -620,6 +620,7 @@ async function biliPlay(){
 }
 async function biliPlayVideo(v,page,cid){
   blog('biliPlayVideo bvid='+v.bvid,'page='+(page||1),'cid='+(cid||''));
+  $('#biliArea').style.display='block';  // 关闭过播放器后,再点结果要重新显示
   page=page||1;
   let c=cid;
   if(!c){
