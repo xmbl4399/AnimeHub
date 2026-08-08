@@ -1,9 +1,25 @@
 # Bangumi API 反代(番剧海报/信息刮削)
 # 搜索/详情接口 12h 缓存(元数据基本不变);封面图 lain.bgm.tv 被 fake-ip 挡(nginx 本机连不上),由前端直连浏览器访问
-location /bgm/ {
+# 变量 proxy_pass 带 URI 会把完整请求 URI 替换成该 URI(nginx 规则)→ 上游收到 "/" 404;必须用正则捕获组 $1 拼路径
+# 顺序:episodes 正则在前(1h 缓存),主正则在后(12h 缓存);nginx 正则 location 按定义顺序匹配
+location ~* ^/bgm/v0/episodes {
     resolver 114.114.114.114 valid=300s;
     set $bgm_host 'api.bgm.tv';
-    proxy_pass https://$bgm_host/;
+    proxy_pass https://$bgm_host/v0/episodes$is_args$args;
+    proxy_set_header User-Agent "media-hub/1.0 (xmbl4399; https://github.com/xmbl4399/media-hub)";
+    proxy_ssl_server_name on;
+    proxy_cache mikan_img;
+    proxy_cache_valid 200 1h;
+    proxy_cache_key $uri$is_args$args;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_read_timeout 15s;
+}
+
+location ~* ^/bgm/(.*)$ {
+    resolver 114.114.114.114 valid=300s;
+    set $bgm_host 'api.bgm.tv';
+    proxy_pass https://$bgm_host/$1$is_args$args;
     proxy_set_header User-Agent "media-hub/1.0 (xmbl4399; https://github.com/xmbl4399/media-hub)";
     proxy_ssl_server_name on;
     proxy_cache mikan_img;
@@ -30,22 +46,6 @@ location ~* ^/lain/(.*)$ {
     proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
     proxy_hide_header Cache-Control;
     add_header Cache-Control "public, max-age=604800" always;
-    add_header X-Cache-Status $upstream_cache_status always;
-    proxy_read_timeout 15s;
-}
-
-# bgm v0 集数列表(已更新集数):1h 短缓存(新集更新及时;bgm 收录本身有延迟,1h 足够)
-# 正则 location 优先于上方前缀 location,只影响 episodes 接口
-location ~* ^/bgm/v0/episodes {
-    resolver 114.114.114.114 valid=300s;
-    set $bgm_host 'api.bgm.tv';
-    proxy_pass https://$bgm_host/v0/episodes$is_args$args;
-    proxy_set_header User-Agent "media-hub/1.0 (xmbl4399; https://github.com/xmbl4399/media-hub)";
-    proxy_ssl_server_name on;
-    proxy_cache mikan_img;
-    proxy_cache_valid 200 1h;
-    proxy_cache_key $uri$is_args$args;
-    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
     add_header X-Cache-Status $upstream_cache_status always;
     proxy_read_timeout 15s;
 }
