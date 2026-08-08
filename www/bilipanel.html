@@ -164,9 +164,7 @@ function makePlayer(u,danmu){
   });
   biliArt.on('ready',()=>{
     L('ArtPlayer ready,duration =',biliArt.duration);
-    const d=biliArt.duration||0;
-    const mm=Math.floor(d/60),ss=Math.floor(d%60);
-    document.getElementById('st').textContent='▶ 播放中 时长 '+mm+':'+(ss<10?'0':'')+ss;
+    document.getElementById('st').style.display='none';  // 成功播放:隐藏状态栏
   });
   biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
   ['loadedmetadata','canplay','playing','waiting','stalled','suspend','emptied','abort','error'].forEach(ev=>{
@@ -191,7 +189,8 @@ function playBili(v,page,cid){
   L('playBili',v.bvid,'page',page,'cid',cid||'');
   document.getElementById('playerArea').style.display='block';
   document.getElementById('pTitle').textContent=v.title.replace(/<\/?em[^>]*>/g,'');
-  document.getElementById('st').textContent='获取播放地址...';
+  document.getElementById('st').style.display='block';
+document.getElementById('st').textContent='获取播放地址...';
   const pl=cid?Promise.resolve(cid):fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'}).then(r=>r.json()).then(j=>{
     const pages=j.data||[];
     L('pagelist pages =',pages.length);
@@ -201,7 +200,8 @@ function playBili(v,page,cid){
   });
   pl.then(c=>{
     L('cid =',c);
-    document.getElementById('st').textContent='获取播放流(stream)...';
+    document.getElementById('st').style.display='block';
+document.getElementById('st').textContent='获取播放流(stream)...';
     const u='/bili-stream2?bvid='+v.bvid+'&cid='+c;
     L('stream url =',u);
     probeStream(u);
@@ -215,13 +215,16 @@ function playBili(v,page,cid){
     });
   }).catch(e=>{
     L('ERROR =',e.message);
-    document.getElementById('st').textContent='播放失败:'+e.message;
+    const st=document.getElementById('st');
+    st.style.display='block';
+    st.textContent='播放失败:'+e.message;
   });
 }
 function renderPages(v,pages,cur){
   const box=document.getElementById('pages');
   box.innerHTML='';
-  document.getElementById('st').textContent='共 '+pages.length+' 个分P,点击切换';
+  document.getElementById('st').style.display='block';
+document.getElementById('st').textContent='共 '+pages.length+' 个分P,点击切换';
   pages.forEach((p,i)=>{
     const b=document.createElement('button');b.className='page-btn'+(i+1===cur?' cur':'');
     b.textContent=(i+1)+' '+(p.part||'');
