@@ -34,7 +34,7 @@ button:hover{border-color:#ffd700;color:#ffd700}
       <button id=logoutBtn onclick=doLogout() style="display:none">退出</button>
     </div>
   </div>
-  <div class=row><input id=q placeholder="输入番名搜索B站..."><button onclick=doSearch()>搜索</button></div>
+  <div class=row><input id=q placeholder="输入番名搜索B站..." onkeydown="if(event.key==='Enter')doSearch()"><button onclick=doSearch()>搜索</button></div>
   <div id=results></div>
 </div>
 <div class=box id=playerArea>
@@ -125,8 +125,7 @@ function doSearch(){
         const pic=v.pic?('https:'+v.pic):'';
         const t=v.title.replace(/<\/?em[^>]*>/g,'');
         const isCollection=/全\d+[话集話]|全集|合集|1-\d/.test(t);
-        d.innerHTML='<img src="'+esc(pic)+'" loading=lazy>'+
-          '<div class=info><div class=t>'+esc(t)+'</div>'+
+        d.innerHTML='<div class=info><div class=t>'+esc(t)+'</div>'+
           '<div class=m><span>▶ '+fmt(v.play)+'</span><span>弹 <b>'+fmt(v.danmaku)+'</b></span><span>⏱ '+esc(v.duration)+'</span><span>'+esc(v.author)+'</span>'+(isCollection?'<span style="color:#ffd700">合集</span>':'')+'</div></div>';
         d.onclick=()=>openPlayer(v);
         box.appendChild(d);
