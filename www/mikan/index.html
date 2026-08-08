@@ -95,6 +95,13 @@ h1 b{color:var(--acc)}
 .art-controls-center{flex-shrink:0}
 .artplayer-plugin-danmuku{flex-shrink:0;display:flex;align-items:center;gap:2px}
 .art-controls-right{flex-shrink:0;margin-left:auto}
+/* 弹幕按钮组固定播放窗口右上角:插件默认 bottom:-40px 会溢出视频区(biliBox 是 aspect-ratio 固定高度,
+   :has 预留的 40px 空间被吃掉)→ 工具条悬浮覆盖下方分集按钮。改为视频内右上角悬浮,不占空间不覆盖 */
+.art-video-player>.artplayer-plugin-danmuku{position:absolute!important;top:8px!important;right:8px!important;left:auto!important;bottom:auto!important;width:auto!important;height:auto!important;padding:2px 6px!important;background:rgba(0,0,0,.4);border-radius:6px;z-index:30!important;gap:8px}
+.art-video-player:has(>.artplayer-plugin-danmuku){margin-bottom:0!important}
+/* 设置/样式面板从按钮下方往右展开,避免超出右边界 */
+.artplayer-plugin-danmuku .apd-config .apd-config-panel{left:auto!important;right:0!important;width:min(320px,78vw)!important}
+.artplayer-plugin-danmuku .apd-style .apd-style-panel{left:auto!important;right:0!important;width:min(200px,70vw)!important}
 </style>
 </head>
 <body>
