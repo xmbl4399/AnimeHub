@@ -20,6 +20,11 @@ PG=$(q page)
 CID=$(q cid)
 [ -z "$PG" ] && PG=1
 case "$A" in
+  spi)
+    echo "Content-Type: application/json; charset=utf-8"
+    echo ""
+    curl -s -m 10 'https://api.bilibili.com/x/frontend/finger/spi' -H "User-Agent: $UA" -c "$JAR"
+    ;;
   search)
     ensure_cookie
     echo "Content-Type: application/json; charset=utf-8"

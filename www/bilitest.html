@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang=zh><head><meta charset=utf-8><title>B站风控测试</title>
+</head><body style="background:#222;color:#eee;font:12px/1.6 monospace;margin:0;padding:12px">
+<div id=log style="white-space:pre-wrap;max-height:92vh;overflow:auto;border:1px solid #444;padding:10px"></div>
+<script>
+var L=function(){var s=[].map.call(arguments,function(x){return (typeof x==='object'&&x!==null)?(function(){try{return JSON.stringify(x);}catch(e){return String(x);}})():String(x);}).join(' ');console.log('[BILI]',s);var d=document.getElementById('log');d.textContent+='\n'+s;d.scrollTop=d.scrollHeight;};
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function probe(name,url){
+  var t0=performance.now();
+  return fetch(url,{cache:'no-store'}).then(function(r){
+    return r.text().then(function(txt){
+      var dt=Math.round(performance.now()-t0);
+      var kind='?';
+      if(txt.charAt(0)==='{'){try{var j=JSON.parse(txt);kind='JSON code='+j.code+(j.data?' data':'')+' '+((j.message||'').slice(0,20));}catch(e){kind='JSON(parse fail) '+txt.slice(0,60);}}
+      else if(/<html/i.test(txt))kind='HTML(风控页?) '+txt.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,80);
+      else kind='TXT '+txt.slice(0,60);
+      L(name,'→ HTTP '+r.status+' '+dt+'ms | '+kind);
+    });
+  }).catch(function(e){L(name,'→ 错误: '+e.message);});
+}
+async function run(){
+  L('===== B 站风控测试开始 =====');
+  L('开始时间:',new Date().toLocaleTimeString());
+  var kw=encodeURIComponent('雾尾粉丝后援会');
+  await probe('1.首次搜索','/bili?action=search&kw='+kw);
+  await probe('2.立即再搜(同词)','/bili?action=search&kw='+kw);
+  var kws=['无职转生','碧蓝之海','间谍过家家','孤独摇滚','雾尾'];
+  for(var i=0;i<5;i++){await probe('3.'+(i+1)+' 连发搜索['+kws[i]+']','/bili?action=search&kw='+encodeURIComponent(kws[i]));}
+  L('--- 等 3 秒 ---');
+  await sleep(3000);
+  await probe('4.等3秒后搜索','/bili?action=search&kw='+kw);
+  await probe('5.pagelist(BV11eMf6YEfo)','/bili?action=pagelist&bvid=BV11eMf6YEfo');
+  await probe('6.dm弹幕(cid=40579567072)','/bili?action=dm&cid=40579567072');
+  await probe('7.SPI 刷新 cookie','/bili?action=spi');
+  await probe('8.SPI后立即搜索','/bili?action=search&kw='+kw);
+  L('--- 再等 5 秒 ---');
+  await sleep(5000);
+  await probe('9.等5秒后搜索','/bili?action=search&kw='+kw);
+  L('===== 测试完成,复制全部日志给我 =====');
+}
+run();
+</script>
+</body></html>
