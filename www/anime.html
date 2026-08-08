@@ -123,11 +123,12 @@ loadList();
 // ===== 播放器(ArtPlayer + dandanplay 弹幕)=====
 let art=null,curUrl='';
 function loadSub(url){
+  // url 已是 enc() 编码过的(play 传入),直接拼,不能再 encodeURIComponent(否则双层编码 404)
   if(!/\.(mkv|mka|mp4|webm)$/i.test(url)||!art)return;
-  fetch('/sub?action=probe&path='+encodeURIComponent(url),{cache:'no-store'})
+  fetch('/sub?action=probe&path='+url,{cache:'no-store'})
     .then(r=>r.json()).then(j=>{
       const subs=(j.streams||[]).filter(s=>/subrip|ass|srt|webvtt/i.test(s.codec_name));
-      if(subs.length&&art)art.subtitle.switch('/sub?action=get&path='+encodeURIComponent(url)+'&i='+subs[0].index,'vtt');
+      if(subs.length&&art)art.subtitle.switch('/sub?action=get&path='+url+'&i='+subs[0].index,'vtt');
     }).catch(()=>{});
 }
 function createPlayer(url,danmu,opts){
