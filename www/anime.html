@@ -383,11 +383,11 @@ function loadBiliDm(title,ep,attempt){
     }).then(ok=>{
       if(ok===false||ok===null){
         // 静默重试(保持匹配中),最多重试 2 次(共 3 次尝试);彻底失败:常驻失败态,点击按钮重试
-        if(attempt<2){setTimeout(()=>loadBiliDm(title,ep,attempt+1),attempt?4000:3000);}
+        if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),5000);}
         else{dmFail=true;dmBtnLabel('B站匹配失败,点击此处重试');}
       }
     }).catch(()=>{
-      if(attempt<2){setTimeout(()=>loadBiliDm(title,ep,attempt+1),attempt?4000:3000);}
+      if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),5000);}
       else{dmFail=true;dmBtnLabel('B站匹配失败,点击此处重试');}
     });
 }

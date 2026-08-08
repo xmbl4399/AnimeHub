@@ -52,7 +52,7 @@ case "$A" in
         printf '%s' "$R"
         exit 0
       fi
-      [ $i -lt 3 ] && sleep 2
+      [ $i -lt 3 ] && sleep 3
     done
     printf '%s' "$R"
     ;;
