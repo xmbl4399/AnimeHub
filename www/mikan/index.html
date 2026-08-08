@@ -285,6 +285,9 @@ async function doExpand(id,name,from){
   $('#biliArea').style.display='block';
   const bq=$('#bq');if(bq)bq.value=name;  // 搜索框默认填充番剧名
   $('#stat').style.display='';
+  // 立即切详情视图:固定控件(标题栏/B站栏/播放器区)先显示,异步数据加载完再填充
+  $('#listTitle').textContent='「'+name+'」加载中…';
+  showDetail();
   biliPlay();  // 自动播放当前番剧(B 站)
   $('#stat').textContent='正在加载「'+name+'」…';
   try{
@@ -322,7 +325,8 @@ async function doExpand(id,name,from){
           }).filter(x=>x.title)};
         }).catch(()=>({...g,items:[]}))
     )).then(gs=>gs.filter(g=>g.items.length));
-    showDetail();renderGroups(withItems,name,{info,desc});
+    $('#listTitle').textContent='「'+name+'」· '+withItems.length+' 个字幕组';
+    renderGroups(withItems,name,{info,desc});
   }catch(e){$('#stat').textContent='加载失败: '+e.message;}
 }
 
