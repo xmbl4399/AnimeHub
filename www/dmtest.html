@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang=zh><head><meta charset=utf-8><title>弹幕匹配流程测试</title>
+</head><body style="background:#222;color:#eee;font:12px/1.6 monospace;margin:0;padding:12px">
+<div id=log style="white-space:pre-wrap;max-height:92vh;overflow:auto;border:1px solid #444;padding:10px"></div>
+<script>
+var L=function(){var s=[].map.call(arguments,function(x){return (typeof x==='object'&&x!==null)?(function(){try{return JSON.stringify(x);}catch(e){return String(x);}})():String(x);}).join(' ');console.log('[DMFLOW]',s);var d=document.getElementById('log');d.textContent+='\n'+s;d.scrollTop=d.scrollHeight;};
+async function run(){
+  L('===== 弹幕匹配完整流程测试 =====');
+  L('时间:',new Date().toLocaleTimeString());
+  // ① 取第一个视频(模拟播放)
+  var fs;
+  try{fs=await (await fetch('/videos.json?t='+Date.now())).json();}catch(e){L('① videos.json 失败:',e.message);return;}
+  var v=fs.find(function(x){return /\.(mkv|mp4|webm)$/i.test(x.name);});
+  if(!v){L('① 没有视频');return;}
+  L('① 测试视频:',v.name);
+  // ② 模拟 parseAnime 提取标题
+  var nm=v.name.split('/').pop();
+  var title=nm.replace(/\.[^.]+$/,'').replace(/^\[[^\]]*\]\s*/,'').replace(/[-_]\s*\d{1,2}\s*$/,'').replace(/\s*S\d{1,2}\s*$/i,'').replace(/[\[\]【】]/g,'').trim();
+  L('② 提取标题:',title);
+  // ③ 搜索(模拟 loadBiliDm 第一步)
+  var t0=performance.now();
+  var sj;
+  try{
+    var sr=await fetch('/bili?action=search&kw='+encodeURIComponent(title),{cache:'no-store'});
+    var ct=sr.headers.get('content-type')||'';
+    L('③ 搜索响应:HTTP '+sr.status,'content-type='+ct,'耗时='+Math.round(performance.now()-t0)+'ms');
+    sj=await sr.json();
+  }catch(e){L('③ 搜索失败(风控/网络):',e.message,'耗时='+Math.round(performance.now()-t0)+'ms');return;}
+  var list=(sj.data&&sj.data.result)||[];
+  L('③ 搜索:code='+sj.code,'结果数='+list.length);
+  if(!list.length){L('④ 无搜索结果(风控拦截或确实无结果),结束');return;}
+  var hit=list[0];
+  L('④ 候选视频:',hit.bvid,'|',hit.title.replace(/<\/?em[^>]*>/g,'').slice(0,50),'|',hit.author,'|',hit.danmaku+'弹');
+  // ⑤ pagelist(模拟 dmFromVideo)
+  t0=performance.now();
+  var pl;
+  try{pl=await (await fetch('/bili?action=pagelist&bvid='+hit.bvid,{cache:'no-store'})).json();}catch(e){L('⑤ pagelist 失败:',e.message);return;}
+  L('⑤ pagelist:',Math.round(performance.now()-t0)+'ms','分P数='+((pl.data||[]).length));
+  var pages=pl.data||[];
+  if(!pages.length){L('⑤ 无分P,结束');return;}
+  L('⑥ 前3分P: '+pages.slice(0,3).map(function(p){return p.cid+'('+p.part+')';}).join(' | '));
+  // ⑦ dm 弹幕
+  t0=performance.now();
+  var dmx;
+  try{dmx=await (await fetch('/bili?action=dm&cid='+pages[0].cid,{cache:'no-store'})).text();}catch(e){L('⑦ 弹幕失败:',e.message);return;}
+  var n=(dmx.match(/<d p=/g)||[]).length;
+  L('⑦ 弹幕(分P1):',Math.round(performance.now()-t0)+'ms','条数='+n);
+  if(n){var m=dmx.match(/<d p="[^"]*"[^>]*>[^<]*<\/d>/);L('⑧ 首条弹幕:',m?m[0].slice(0,90):'解析失败');}
+  L('===== 流程完成,复制日志给我 =====');
+}
+run();
+</script>
+</body></html>
