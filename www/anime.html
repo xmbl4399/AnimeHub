@@ -73,7 +73,22 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 #player .bar .pt{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pClose{background:transparent;border:1px solid #f85149;color:#f85149;font-size:15px;width:28px;height:28px;border-radius:50%;line-height:1;cursor:pointer;flex-shrink:0}
 #pClose:hover{background:#f85149;color:#fff}
+#player .vwrap{position:relative}
 #player video{width:100%;max-height:72vh;display:block;background:#000}
+#player #dm{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+#dmBtn{background:#2a3140;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+#dmReBtn{background:#2a3140;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+#dmMatch{position:absolute;top:8px;left:14px;width:min(440px,calc(100% - 28px));background:#1c212b;border:1px solid #3a4250;border-radius:10px;padding:10px;z-index:6;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#dmMatch .dmRow{display:flex;gap:8px}
+#dmMatch .dmRow input{flex:1;min-width:0;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid #444;background:#14181f;color:#eee;font-size:13px;outline:none}
+#dmMatch .dmRow input:focus{border-color:#ffd700}
+#dmMatch button{background:#2a3140;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+#dmMatch button:hover{border-color:#ffd700}
+#dmResults{max-height:230px;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:4px}
+#dmResults .dm-item{padding:8px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent;font-size:13px}
+#dmResults .dm-item:hover{background:#2a3140;border-color:#ffd700}
+#dmResults .dm-item .c{color:#999;font-size:11px;margin-left:8px}
+#dmResults .dm-empty{color:#999;font-size:12px;padding:6px 2px}
 </style>
 </head>
 <body>
@@ -87,8 +102,13 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 <div id=player>
   <div class=overlay onclick=closePlayer()></div>
   <div class=frame>
-    <div class=bar><span class=pt id=pTitle></span><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
-    <div class=vwrap><video id=pv controls autoplay></video></div>
+    <div class=bar><span class=pt id=pTitle></span><button id=dmBtn onclick=toggleDm() title=弹幕>弹幕</button><button id=dmReBtn onclick=openDmMatch() title=重新匹配>重新匹配</button><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
+    <div class=vwrap><video id=pv controls autoplay></video><canvas id=dm></canvas>
+      <div id=dmMatch>
+        <div class=dmRow><input id=dmQ placeholder="输入番名搜索弹弹..."><button id=dmSearchBtn onclick=dmDoSearch()>搜索</button><button onclick=closeDmMatch()>✕</button></div>
+        <div id=dmResults></div>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -99,13 +119,126 @@ const fmtSize=s=>s>=1073741824?(s/1073741824).toFixed(1)+' GB':s>=1048576?(s/104
 let vids=[];
 function loadList(){fetch('/videos.json?t='+Date.now()).then(r=>r.json()).then(fs=>{vids=fs;renderAnime();}).catch(()=>document.getElementById('empty').style.display='block');}
 loadList();
+// ===== dandanplay 弹幕 =====
+let dmOn=true,dmList=[],dmActive=[],dmQi=0,dmTimer=null,dmCtx=null,dmTitle='';
+function dmBtnLabel(st){const b=document.getElementById('dmBtn');b.textContent=st||('弹幕:'+(dmOn?'开':'关')+(dmList.length?('('+dmList.length+')'):''));}
+function toggleDm(){dmOn=!dmOn;dmBtnLabel();const c=document.getElementById('dm');if(!dmOn&&c&&dmCtx)dmCtx.clearRect(0,0,c.width,c.height);if(dmOn&&dmList.length&&!dmTimer)startDmLoop();}
+function openDmMatch(){
+  const m=document.getElementById('dmMatch');
+  document.getElementById('dmQ').value=dmTitle||'';
+  document.getElementById('dmResults').innerHTML='';
+  m.style.display='block';
+  document.getElementById('dmQ').focus();
+}
+function closeDmMatch(){document.getElementById('dmMatch').style.display='none';}
+function dmDoSearch(){
+  const q=document.getElementById('dmQ').value.trim();
+  const box=document.getElementById('dmResults');
+  if(!q){box.innerHTML='<div class=dm-empty>请输入番名</div>';return;}
+  box.innerHTML='<div class=dm-empty>搜索中...</div>';
+  fetch('/dandan/api/v2/search/episodes?anime='+encodeURIComponent(q),{cache:'no-store'})
+    .then(r=>r.json()).then(j=>{
+      const list=j.animes||[];
+      if(!list.length){box.innerHTML='<div class=dm-empty>无匹配结果,换个名字试试</div>';return;}
+      box.innerHTML='';
+      list.forEach(a=>{
+        const d=document.createElement('div');d.className='dm-item';
+        d.innerHTML='<span>'+esc(a.animeTitle)+'</span><span class=c>'+((a.episodes||[]).length)+' 集</span>';
+        d.onclick=()=>dmPick(a);
+        box.appendChild(d);
+      });
+    }).catch(()=>{box.innerHTML='<div class=dm-empty>搜索失败</div>';});
+}
+// 用选中的番剧拉弹幕(自动匹配第一个 / 手动点选共用)
+function dmPick(a,ep){
+  dmList=[];dmActive=[];dmQi=0;
+  dmTitle=a.animeTitle;
+  closeDmMatch();
+  dmBtnLabel('匹配中...');
+  const eps=a.episodes||[];
+  let item=null;
+  if(ep)item=eps[Math.min(Math.max(ep-1,0),eps.length-1)];
+  if(!item&&ep)item=eps.find(e=>{const m=String(e.episodeTitle||'').match(/\d+/);return m&&+m[0]===ep;});
+  if(!item)item=eps[0];
+  if(!item){dmBtnLabel();return;}
+  fetch('/dandan/api/v2/comment/'+item.episodeId,{cache:'no-store'})
+    .then(r=>r.json()).then(j=>{
+      dmList=(j.comments||[]).map(x=>({t:+x.p||0,m:(x.m==2?2:x.m==3?3:1),c:String(x.c||''),color:x.color||'ffffff'})).filter(x=>x.c&&x.t>=0);
+      dmBtnLabel();
+      if(dmOn&&dmList.length)startDmLoop();
+    }).catch(()=>dmBtnLabel());
+}
+function loadDm(title,ep){
+  dmTitle=title;
+  dmBtnLabel('匹配中...');
+  fetch('/dandan/api/v2/search/episodes?anime='+encodeURIComponent(title),{cache:'no-store'})
+    .then(r=>r.json()).then(j=>{
+      const a=(j.animes||[])[0];
+      if(!a){dmBtnLabel('无匹配');setTimeout(dmBtnLabel,2500);return;}
+      dmPick(a,ep);
+    }).catch(()=>{dmBtnLabel('搜索失败');setTimeout(dmBtnLabel,2500);});
+}
+function resizeDm(){
+  const c=document.getElementById('dm');if(!c)return;
+  const r=c.parentElement.getBoundingClientRect();
+  if(c.width!==Math.round(r.width)||c.height!==Math.round(r.height)){c.width=Math.round(r.width);c.height=Math.round(r.height);}
+  dmCtx=c.getContext('2d');
+}
+function startDmLoop(){
+  if(dmTimer)return;
+  resizeDm();
+  dmTimer=setInterval(()=>{
+    const v=document.getElementById('pv'),c=document.getElementById('dm');
+    if(!v||!c){return;}
+    if(!dmCtx)resizeDm();
+    if(v.paused||v.ended||!dmOn){if(dmCtx)dmCtx.clearRect(0,0,c.width,c.height);return;}
+    const now=v.currentTime;
+    while(dmQi<dmList.length&&dmList[dmQi].t<=now){spawnDm(dmList[dmQi]);dmQi++;}
+    stepDm();
+  },50);
+}
+function spawnDm(d){
+  const c=document.getElementById('dm');if(!c)return;
+  const W=c.width,H=c.height,fs=Math.max(20,Math.round(H/16));
+  if(!dmCtx)return;
+  dmCtx.font='bold '+fs+'px "Microsoft YaHei",sans-serif';
+  const w=dmCtx.measureText(d.c).width+10;
+  const rows=Math.max(2,Math.floor(H/fs)-2);
+  const y=fs+(Math.floor(Math.random()*rows))*fs;
+  dmActive.push({d,text:d.c,color:d.color,w,x:W,y,t0:performance.now(),dur:Math.max(6000,(W+w)/140*1000)});
+}
+function stepDm(){
+  const c=document.getElementById('dm');if(!c)return;
+  const W=c.width,H=c.height,fs=Math.max(20,Math.round(H/16));
+  dmCtx.clearRect(0,0,W,H);
+  dmCtx.font='bold '+fs+'px "Microsoft YaHei",sans-serif';
+  const now=performance.now();
+  dmActive=dmActive.filter(it=>{
+    const el=(now-it.t0)/it.dur;
+    if(el>=1)return false;
+    if(it.d.m===2){if(el<1)dmCtx.fillText(it.text,W/2-it.w/2,it.y);}
+    else if(it.d.m===3){if(el<1)dmCtx.fillText(it.text,W/2-it.w/2,H-10);}
+    else{const x=W-(W+it.w)*el;dmCtx.fillText(it.text,x,it.y);if(x+it.w<0)return false;}
+    return true;
+  });
+}
+
 function play(row,url){
   const nm=row.querySelector('.nm').textContent;
   document.getElementById('pTitle').textContent=nm;
   document.getElementById('pv').src='/media/'+url;
   document.getElementById('player').style.display='flex';
+  // 弹幕:文件名解析番名+集数 → dandanplay 搜索取弹幕
+  const p=parseAnime(nm);
+  dmList=[];dmActive=[];dmQi=0;
+  if(dmOn&&p.title&&p.title!=='(其他)')loadDm(p.title,p.ep);else dmBtnLabel();
 }
-function closePlayer(){const pv=document.getElementById('pv');pv.pause();pv.src='';document.getElementById('player').style.display='none';}
+function closePlayer(){
+  const pv=document.getElementById('pv');pv.pause();pv.src='';document.getElementById('player').style.display='none';
+  if(dmTimer){clearInterval(dmTimer);dmTimer=null;}
+  dmActive=[];dmQi=0;
+  const c=document.getElementById('dm');if(c&&dmCtx)dmCtx.clearRect(0,0,c.width,c.height);
+}
 // 文件名 → 番名+集数(借鉴 AutoBangumi 解析思路:去字幕组块/集数/质量块)
 function parseAnime(name){
   let s=name.replace(/\.[^.]+$/,'');
