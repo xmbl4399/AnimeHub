@@ -13,3 +13,7 @@ location = /del {
 location = /sub {
     proxy_pass http://127.0.0.1:8080/cgi-bin/sub;
 }
+
+location = /bili {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/bili;
+}
