@@ -711,9 +711,10 @@ async function biliPlayVideo(v,page,cid){
     // 诊断日志:弹幕按钮组实际位置(排查按钮错乱)
     setTimeout(()=>{
       try{
-        const dm=biliArt.$('.artplayer-plugin-danmuku');
-        const vp=biliArt.$('.art-video-player');
-        const ctl=biliArt.$('.art-controls');
+        const box=document.getElementById('biliBox');
+        const dm=box.querySelector('.artplayer-plugin-danmuku');
+        const vp=box.querySelector('.art-video-player');
+        const ctl=box.querySelector('.art-controls');
         const r=dm&&dm.getBoundingClientRect();
         const p=dm&&dm.parentElement;
         blog('[DM-POS] 按钮组:存在='+!!dm,
