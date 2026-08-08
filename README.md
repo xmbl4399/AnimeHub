@@ -14,6 +14,8 @@
 
 ![界面 4](screenshots/shot4.jpg)
 
+![LuCI 控制面板](screenshots/luci.jpg)
+
 ## 功能特性
 
 ### 🏠 一站式导航(hub)
