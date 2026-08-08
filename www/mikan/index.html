@@ -214,8 +214,20 @@ async function init(){
     if(m){y=m[1];s=m[2];}
     if(!y&&seasonList.length){y=seasonList[0].year;s=seasonList[0].season;}
     renderSeasonSel();
-    $('#seasonSel').value=y+'|'+s;
-    await loadSeason(y,s);
+    // 季度记忆:默认官方当前季;上次追更当前季则跟随官方(夏→秋自动更新),上次主动选旧季则尊重
+    const sel=$('#seasonSel');
+    const cur=y+'|'+s;
+    let want=cur;
+    try{
+      const saved=JSON.parse(localStorage.getItem('mk:season')||'null');
+      if(saved&&saved.v&&saved.cur){
+        if(saved.v!==saved.cur&&[...sel.options].some(o=>o.value===saved.v))want=saved.v;
+      }
+    }catch(e){}
+    sel.value=want;
+    try{localStorage.setItem('mk:season',JSON.stringify({v:want,cur:cur}));}catch(e){}
+    const [wy,ws]=want.split('|');
+    await loadSeason(wy,ws);
   }catch(e){$('#stat').textContent='加载失败: '+e.message;}
   checkBiliLogin();  // 初始化 B 站登录状态按钮
 }
@@ -231,7 +243,10 @@ function renderSeasonSel(){
 }
 
 async function onSeasonChange(){
-  const [y,s]=$('#seasonSel').value.split('|');
+  const sel=$('#seasonSel');
+  const [y,s]=sel.value.split('|');
+  // 记录选中季度 + 当时官方当前季(供下次进入判断:追更跟随官方/考古保持选择)
+  try{localStorage.setItem('mk:season',JSON.stringify({v:y+'|'+s,cur:sel.options[0]?sel.options[0].value:y+'|'+s}));}catch(e){}
   await loadSeason(y,s);
 }
 
