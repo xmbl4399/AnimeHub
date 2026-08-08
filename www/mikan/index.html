@@ -82,8 +82,9 @@ h1 b{color:var(--acc)}
 .bili-s{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px;flex-shrink:0}
 .bili-s:active{transform:scale(.95)}
 #biliResults{padding:0 14px;border-bottom:1px solid var(--line);max-height:300px;overflow:auto}
-#biliResults .bitem{padding:8px;border-radius:6px;cursor:pointer;font-size:12.5px}
+#biliResults .bitem{padding:8px;border-radius:6px;cursor:pointer;font-size:12.5px;border:1px solid transparent}
 #biliResults .bitem:hover{background:rgba(255,255,255,.06)}
+#biliResults .bitem.cur{border:2px solid #ffd700;background:rgba(255,215,0,.1)}
 #biliResults .bitem .bm{font-size:11px;color:var(--mut);margin-top:3px}
 .bili-head{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
 .bili-x{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:2px 9px;cursor:pointer;font-size:12px;flex-shrink:0}
@@ -565,7 +566,8 @@ function renderBiliResults(list,collapsed){
     const play=v.play>=10000?(v.play/10000).toFixed(1)+'万':v.play;
     const dm=v.danmaku>=10000?(v.danmaku/10000).toFixed(1)+'万':v.danmaku;
     const isCol=/全\d+[话集話]|全集|合集|1-\d/.test(t);
-    if(v.bvid===curBvid)d.style.border='1px solid #ffd700';  // 当前播放项黄框
+    if(v.bvid===curBvid)d.className='bitem cur';  // 当前播放项黄框+底色
+    else d.className='bitem';
     d.innerHTML='<div>'+t+(isCol?' <span style="color:#ffd700">合集</span>':'')+'</div><div class="bm">▶ '+play+' · 弹 '+dm+' · '+v.author+'</div>';
     d.onclick=()=>{
       curBvid=v.bvid;
