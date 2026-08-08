@@ -268,7 +268,7 @@ function dmPickPage(v,p){
   closeDmMatch();
   dmBtnLabel('B站加载中...');
   fetch('/bili?action=dm&cid='+p.cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
-    if(!xml||xml.indexOf('<d')<0){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,2500);return;}
+    if(!xml||xml.indexOf('<d')<0){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,6000);return;}
     const doc=new DOMParser().parseFromString(xml,'text/xml');
     const ds=doc.querySelectorAll('d[p]');
     dmList=[];
@@ -280,7 +280,7 @@ function dmPickPage(v,p){
     dmSource={bvid:v.bvid,cid:p.cid};
     dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
-  }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,2500);});
+  }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,6000);});
 }
 function dmShowEps(a){
   const box=document.getElementById('dmResults');
@@ -363,7 +363,7 @@ function loadBiliDm(title,ep){
   fetch('/bili?action=search&kw='+encodeURIComponent(dmSearchTitle(title)),{cache:'no-store'})
     .then(r=>r.json()).then(j=>{
       const list=(j.data&&j.data.result)||[];
-      if(!list.length){dmBtnLabel('B站无结果');setTimeout(dmBtnLabel,2500);return;}
+      if(!list.length){dmBtnLabel('B站无结果');setTimeout(dmBtnLabel,6000);return;}
       let v=null;
       if(ep){
         const re=new RegExp('第\\s*'+ep+'\\s*[话集話]|E[Pp]?0?'+ep+'|\\b'+ep+'\\b');
@@ -372,8 +372,8 @@ function loadBiliDm(title,ep){
       if(!v)v=list.find(x=>/全集|全\d+[话集話]|合集|全.*话/i.test(x.title))||list[0];
       return dmFromVideo(v,ep);
     }).then(ok=>{
-      if(ok===false){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,2500);}
-    }).catch(()=>{dmBtnLabel('B站失败');setTimeout(dmBtnLabel,2500);});
+      if(ok===false){dmBtnLabel('无弹幕');setTimeout(dmBtnLabel,6000);}
+    }).catch(()=>{dmBtnLabel('B站失败');setTimeout(dmBtnLabel,6000);});
 }
 
 function parseAnime(name){
