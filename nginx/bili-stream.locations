@@ -1,0 +1,7 @@
+# B站视频流反代:伪造 bilibili Referer 绕过防盗链(浏览器 video 无法设置 Referer,必须经代理)
+# 前端播放 /bili-stream2?bvid=&cid=  → cgi stream action(uhttpd 不传 Range 头给 CGI,nginx 把 Range 塞进 rng 参数)
+location = /bili-stream2 {
+    proxy_pass http://127.0.0.1:8080/cgi-bin/bili?action=stream&bvid=$arg_bvid&cid=$arg_cid&rng=$http_range;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+}

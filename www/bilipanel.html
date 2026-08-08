@@ -26,19 +26,89 @@ button:hover{border-color:#ffd700;color:#ffd700}
 </style>
 </head><body>
 <div class=box>
-  <h2>B 站弹幕播放面板(测试)</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <h2 style="margin-bottom:0">B 站弹幕播放面板</h2>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id=loginSt style="font-size:12px;color:#9aa4b2">检查登录...</span>
+      <button id=loginBtn onclick=openLogin() style="display:none">扫码登录</button>
+      <button id=logoutBtn onclick=doLogout() style="display:none">退出</button>
+    </div>
+  </div>
   <div class=row><input id=q placeholder="输入番名搜索B站..."><button onclick=doSearch()>搜索</button></div>
   <div id=results></div>
 </div>
 <div class=box id=playerArea>
   <h2 id=pTitle>播放器</h2>
-  <iframe id=biliFrame src=""></iframe>
+  <div id=artBox style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px"></div>
   <div id=st></div>
   <div id=pages></div>
 </div>
+<!-- 扫码登录弹窗 -->
+<div id=loginModal style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99;align-items:center;justify-content:center">
+  <div style="background:#242a36;border:1px solid #445;border-radius:12px;padding:26px;text-align:center;min-width:300px">
+    <h3 style="margin-bottom:14px;color:#ffd700">扫码登录 B 站</h3>
+    <div id=qrBox style="background:#fff;border-radius:8px;padding:10px;display:inline-block;margin-bottom:12px">获取二维码...</div>
+    <div id=qrSt style="font-size:12px;color:#9aa4b2;margin-bottom:14px">打开手机 B 站 App 扫一扫</div>
+    <button onclick=closeLogin()>关闭</button>
+  </div>
+</div>
+<script src="/lib/artplayer.js"></script>
+<script src="/lib/artplayer-plugin-danmuku.js"></script>
+<script src="/lib/qrcode.js"></script>
 <script>
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 function fmt(n){if(n>=10000)return (n/10000).toFixed(1)+'万';return n;}
+// ===== 登录状态 / 扫码登录 =====
+let pollTimer=null;
+function checkLogin(){
+  const st=document.getElementById('loginSt'),lb=document.getElementById('loginBtn'),ob=document.getElementById('logoutBtn');
+  fetch('/bili?action=login_status',{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    const d=j.data||{};
+    if(d.isLogin){st.textContent='已登录:'+(d.uname||'')+'('+d.mid+')';lb.style.display='none';ob.style.display='inline-block';}
+    else{st.textContent='未登录(游客)';lb.style.display='inline-block';ob.style.display='none';}
+  }).catch(()=>{st.textContent='状态未知';lb.style.display='inline-block';ob.style.display='none';});
+}
+function openLogin(){
+  document.getElementById('loginModal').style.display='flex';
+  document.getElementById('qrBox').textContent='获取二维码...';
+  document.getElementById('qrSt').textContent='打开手机 B 站 App 扫一扫';
+  fetch('/bili?action=qrcode_gen',{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    const d=j.data||{};
+    if(!d.qrcode_key)throw new Error('无二维码');
+    const qr=qrcode(0,'M');qr.addData(d.url);qr.make();
+    document.getElementById('qrBox').innerHTML=qr.createImgTag(4);
+    pollLogin(d.qrcode_key);
+  }).catch(e=>{document.getElementById('qrSt').textContent='获取二维码失败:'+e.message;});
+}
+function pollLogin(key){
+  if(pollTimer)clearInterval(pollTimer);
+  const t0=Date.now();
+  pollTimer=setInterval(()=>{
+    if(Date.now()-t0>90000){
+      clearInterval(pollTimer);pollTimer=null;
+      document.getElementById('qrSt').textContent='二维码已过期,请关闭后重新打开';
+      return;
+    }
+    fetch('/bili?action=qrcode_poll&qrcode_key='+key,{cache:'no-store'}).then(r=>r.json()).then(j=>{
+      const c=j.data?j.data.code:j.code;
+      if(c===0){
+        clearInterval(pollTimer);pollTimer=null;
+        document.getElementById('qrSt').textContent='✅ 登录成功!';
+        checkLogin();
+        setTimeout(closeLogin,1200);
+      }else if(c===86090){
+        document.getElementById('qrSt').textContent='✅ 已扫码,请在手机上确认';
+      }else{
+        document.getElementById('qrSt').textContent='⏳ 等待扫码...';
+      }
+    }).catch(()=>{});
+  },2000);
+}
+function closeLogin(){if(pollTimer)clearInterval(pollTimer);pollTimer=null;document.getElementById('loginModal').style.display='none';}
+function doLogout(){
+  fetch('/bili?action=logout',{cache:'no-store'}).then(()=>checkLogin()).catch(()=>checkLogin());
+}
+checkLogin();
 function doSearch(){
   const q=document.getElementById('q').value.trim();
   const box=document.getElementById('results');
@@ -63,34 +133,75 @@ function doSearch(){
       });
     }).catch(e=>{box.innerHTML='<div class=st>搜索失败: '+esc(e.message)+'</div>';});
 }
-function openPlayer(v){
-  const pa=document.getElementById('playerArea');
-  pa.style.display='block';
+// ===== 自播播放器(ArtPlayer + B站流)=====
+let biliArt=null;
+function L(){const a=['[BILI]'].concat([].slice.call(arguments));console.log.apply(console,a);}
+function playBili(v,page,cid){
+  L('playBili',v.bvid,'page',page,'cid',cid||'');
+  document.getElementById('playerArea').style.display='block';
   document.getElementById('pTitle').textContent=v.title.replace(/<\/?em[^>]*>/g,'');
-  const fr=document.getElementById('biliFrame');
-  fr.src='https://player.bilibili.com/player.html?bvid='+v.bvid+'&page=1&danmaku=1';
-  document.getElementById('st').textContent='加载分P...';
-  loadPages(v);
+  document.getElementById('st').textContent='获取播放地址...';
+  const pl=cid?Promise.resolve(cid):fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    const pages=j.data||[];
+    L('pagelist pages =',pages.length);
+    if(!pages.length)throw new Error('无分P');
+    renderPages(v,pages,page);
+    return pages[Math.min(page-1,pages.length-1)].cid;
+  });
+  pl.then(c=>{
+    L('cid =',c);
+    document.getElementById('st').textContent='获取播放流(stream)...';
+    const u='/bili-stream2?bvid='+v.bvid+'&cid='+c;
+    L('stream url =',u);
+    if(biliArt){biliArt.destroy();biliArt=null;}
+    L('创建 ArtPlayer,url =',u);
+    biliArt=new Artplayer({
+      container:document.getElementById('artBox'),
+      url:u,
+      autoplay:true,
+      autoSize:true,
+      fullscreen:true,
+      fullscreenWeb:true,
+      theme:'#ffd700',
+      plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve([]),speed:8,opacity:.9,antiOverlap:true,visible:true,emitter:false})]
+    });
+    biliArt.on('ready',()=>L('ArtPlayer ready,duration =',biliArt.duration));
+    biliArt.on('error',(e)=>L('ArtPlayer error =',(e&&e.message)||e));
+    biliArt.on('video:error',(e)=>L('video:error =',e&&e.message||e));
+    return loadBiliDanmu(c);
+  }).catch(e=>{
+    L('ERROR =',e.message);
+    document.getElementById('st').textContent='播放失败:'+e.message;
+  });
 }
-function loadPages(v){
+function loadBiliDanmu(cid){
+  L('拉弹幕 cid =',cid);
+  return fetch('/bili?action=dm&cid='+cid,{cache:'no-store'}).then(r=>r.text()).then(xml=>{
+    const m=[...xml.matchAll(/<d p="([^"]*)">([^<]*)<\/d>/g)];
+    L('弹幕条数 =',m.length);
+    if(!biliArt||!m.length)return;
+    const danmu=m.map(x=>{
+      const a=x[1].split(',');
+      const color=a[3]&&a[3]!=='16777215'?'#'+(+a[3]).toString(16).padStart(6,'0'):'#fff';
+      return {time:+a[0]||0,text:x[2],color:color,mode:a[1]==4?1:a[1]==5?2:0};
+    });
+    try{biliArt.plugin.danmuku.load(danmu);L('弹幕已 load,条数 =',danmu.length);}
+    catch(e){L('弹幕 load 失败 =',e.message);}
+  }).catch(e=>L('弹幕请求失败 =',e.message));
+}
+function renderPages(v,pages,cur){
   const box=document.getElementById('pages');
-  fetch('/bili?action=pagelist&bvid='+v.bvid,{cache:'no-store'})
-    .then(r=>r.json()).then(j=>{
-      const pages=j.data||[];
-      if(!pages.length){box.innerHTML='';document.getElementById('st').textContent='无分P';return;}
-      document.getElementById('st').textContent='共 '+pages.length+' 个分P,点击切换';
-      box.innerHTML='';
-      pages.forEach((p,i)=>{
-        const b=document.createElement('button');b.className='page-btn'+(i===0?' cur':'');
-        b.textContent=(i+1)+' '+(p.part||'');
-        b.onclick=()=>{
-          document.getElementById('biliFrame').src='https://player.bilibili.com/player.html?bvid='+v.bvid+'&page='+(i+1)+'&danmaku=1';
-          box.querySelectorAll('.page-btn').forEach(x=>x.classList.remove('cur'));
-          b.classList.add('cur');
-        };
-        box.appendChild(b);
-      });
-    }).catch(()=>{document.getElementById('st').textContent='分P加载失败';});
+  box.innerHTML='';
+  document.getElementById('st').textContent='共 '+pages.length+' 个分P,点击切换';
+  pages.forEach((p,i)=>{
+    const b=document.createElement('button');b.className='page-btn'+(i+1===cur?' cur':'');
+    b.textContent=(i+1)+' '+(p.part||'');
+    b.onclick=()=>{box.querySelectorAll('.page-btn').forEach(x=>x.classList.remove('cur'));b.classList.add('cur');playBili(v,i+1,p.cid);};
+    box.appendChild(b);
+  });
+}
+function openPlayer(v){
+  playBili(v,1,null);
 }
 </script>
 </body></html>
