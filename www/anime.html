@@ -230,10 +230,11 @@ function dmDoSearch(auto){
         box.appendChild(d);
         items.push({v,d});
       });
-      // auto:自动展开当前弹幕来源的视频并定位分P
-      if(auto&&dmSource){
-        const hit=items.find(x=>x.v.bvid===dmSource.bvid);
+      // auto:自动展开当前弹幕来源的视频并定位分P;无来源则展开第一个(最相关)
+      if(auto){
+        const hit=dmSource?items.find(x=>x.v.bvid===dmSource.bvid):null;
         if(hit)dmExpandPages(hit.v,hit.d,dmSource.cid);
+        else if(items.length)dmExpandPages(items[0].v,items[0].d);
       }
     }).catch(()=>{box.innerHTML='<div class=dm-empty>搜索失败</div>';});
 }
