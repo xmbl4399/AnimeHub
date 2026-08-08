@@ -86,6 +86,7 @@ h1 b{color:var(--acc)}
 #biliResults .bitem .bm{font-size:11px;color:var(--mut);margin-top:3px}
 .bili-head{display:flex;align-items:center;gap:8px;padding:8px 14px 0}
 .bili-x{background:var(--card);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:2px 9px;cursor:pointer;font-size:12px;flex-shrink:0}
+#biliFold{background:#00aeec;border-color:#00aeec;color:#fff;font-weight:700;padding:3px 10px}
 #biliArea{padding:0 14px 6px;border-bottom:1px solid var(--line)}
 </style>
 </head>
@@ -516,6 +517,7 @@ function biliFold(){
     bar.style.display='flex';
     btn.textContent='折叠B站';
     if($('#biliTg').textContent==='收起')res.style.display='block';  // 之前展开的列表恢复
+    if(curName)biliPlay();  // 展开时重新自动播放当前番剧
   }
 }
 function renderBiliResults(list,collapsed){
