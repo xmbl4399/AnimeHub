@@ -110,7 +110,7 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 <div id=player>
   <div class=overlay onclick=closePlayer()></div>
   <div class=frame>
-    <div class=bar><span class=pt id=pTitle></span><button id=dmBtn title=弹幕>弹幕</button><button id=dmReBtn onclick=openDmMatch() title=重新匹配>重新匹配</button><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
+    <div class=bar><span class=pt id=pTitle></span><button id=dmBtn onclick=toggleDm() title=弹幕>弹幕</button><button id=dmReBtn onclick=openDmMatch() title=重新匹配>重新匹配</button><button id=pClose onclick=closePlayer() title=关闭>✕</button></div>
     <div class=vwrap><div id=artContainer></div><div id=subLoading>解码字幕中(首次约 10-20 秒)...</div>
       <div id=dmMatch>
         <div class=dmRow><input id=dmQ placeholder="输入番名搜索B站..."><button id=dmSearchBtn onclick=dmDoSearch()>搜索</button><button onclick=closeDmMatch()>✕</button></div>
@@ -176,13 +176,8 @@ function closePlayer(){
   if(art){art.destroy();art=null;}
 }
 // ===== dandanplay 弹幕 =====
-let dmOn=true,dmList=[],dmTitle='',dmCurEp=0,dmSource=null,dmFail=false;
+let dmOn=true,dmList=[],dmTitle='',dmCurEp=0,dmSource=null;
 function dmBtnLabel(st){const b=document.getElementById('dmBtn');b.textContent=st||('弹幕:'+(dmOn?'开':'关')+(dmList.length?('('+dmList.length+')'):''));}
-function dmBtnClick(){
-  if(dmFail){dmFail=false;dmBtnLabel('B站重试中...');loadBiliDm(dmTitle,dmCurEp,0);return;}
-  toggleDm();
-}
-document.getElementById('dmBtn').onclick=dmBtnClick;
 function toDanmu(comments){
   // dandan comment:p="时间,模式,颜色hex,用户hash"(逗号分隔),m=弹幕内容
   return (comments||[]).map(x=>{
@@ -283,7 +278,7 @@ function dmPickPage(v,p){
       dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+pp[0]||0});
     });
     dmSource={bvid:v.bvid,cid:p.cid};
-    dmFail=false;dmBtnLabel('B站:'+dmList.length);
+    dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
   }).catch(()=>{dmBtnLabel('加载失败');setTimeout(dmBtnLabel,6000);});
 }
@@ -358,7 +353,7 @@ function dmFromVideo(v,ep){
       dmList.push({text:d.textContent,mode:(m==4?2:m==5?1:0),color:'#'+col.toString(16).padStart(6,'0'),time:+p[0]||0});
     });
     dmSource={bvid:v.bvid,cid:cid};
-    dmFail=false;dmBtnLabel('B站:'+dmList.length);
+    dmBtnLabel('B站:'+dmList.length);
     if(dmOn&&dmList.length)rebuildPlayer();
     return true;
   });
@@ -382,13 +377,13 @@ function loadBiliDm(title,ep,attempt){
       return dmFromVideo(v,ep);
     }).then(ok=>{
       if(ok===false||ok===null){
-        // 静默重试(保持匹配中),最多重试 2 次(共 3 次尝试);彻底失败:常驻失败态,点击按钮重试
-        if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),5000);}
-        else{dmFail=true;dmBtnLabel('B站匹配失败,点击此处重试');}
+        // 静默重试一次(3s,保持匹配中),彻底失败才提示(6s 恢复)
+        if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
+        else{dmBtnLabel('B站无弹幕,点重新匹配手动选');setTimeout(dmBtnLabel,6000);}
       }
     }).catch(()=>{
-      if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),5000);}
-      else{dmFail=true;dmBtnLabel('B站匹配失败,点击此处重试');}
+      if(attempt<1){setTimeout(()=>loadBiliDm(title,ep,attempt+1),3000);}
+      else{dmBtnLabel('B站失败,点重新匹配重试');setTimeout(dmBtnLabel,6000);}
     });
 }
 
