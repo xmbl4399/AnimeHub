@@ -103,8 +103,8 @@ h1 b{color:var(--acc)}
 <div id="season"></div>
 <div id="searchGrid" style="display:none"></div>
 <div id="list">
-  <div class="list-head"><span id="listTitle"></span><button class="list-x" onclick="closeDetail()" title="关闭">✕</button></div>
-  <div class="bili-bar">
+  <div class="list-head"><button class="bili-x" id="biliFold" onclick="biliFold()" title="折叠/展开 B 站播放">▾</button><span id="listTitle"></span><button class="list-x" onclick="closeDetail()" title="关闭">✕</button></div>
+  <div class="bili-bar" id="biliBar">
     <button class="bili-play" id="biliLogin" onclick="biliLoginClick()" title="B 站登录状态"><span style="color:#fff;font-weight:700;font-size:12px">登录</span></button>
     <input id="bq" placeholder="B站搜索番剧..." onkeydown="if(event.key==='Enter')bSearch()">
     <button class="bili-s" onclick="bSearch()">搜索</button>
@@ -503,6 +503,20 @@ function biliClose(){
   $('#biliArea').style.display='none';
   if(biliArt){biliArt.destroy();biliArt=null;}
   $('#biliPages').innerHTML='';
+}
+let biliFolded=false;
+function biliFold(){
+  biliFolded=!biliFolded;
+  const bar=$('#biliBar'),res=$('#biliResults'),area=$('#biliArea'),btn=$('#biliFold');
+  if(biliFolded){
+    bar.style.display='none';res.style.display='none';area.style.display='none';
+    btn.textContent='▶';
+  }else{
+    bar.style.display='flex';
+    btn.textContent='▾';
+    if($('#biliTg').textContent==='收起')res.style.display='block';  // 之前展开的列表恢复
+    if(biliArt)area.style.display='block';                          // 有播放器则恢复
+  }
 }
 function renderBiliResults(list,collapsed){
   const box=$('#biliResults');
