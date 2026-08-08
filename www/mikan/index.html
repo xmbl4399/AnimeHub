@@ -105,9 +105,7 @@ h1 b{color:var(--acc)}
 <div id="list">
   <div class="list-head"><span id="listTitle"></span><button class="list-x" onclick="closeDetail()" title="关闭">✕</button></div>
   <div class="bili-bar">
-    <button class="bili-play" onclick="biliPlay()" title="B 站直接播放当前番剧">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v4.026c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56h-.854c-.31.31-.744.465-1.3.465H13.72c-.555 0-.99-.155-1.3-.465h-1.114c-.31.31-.744.465-1.3.465H7.487c-.555 0-.99-.155-1.3-.465h-.853c-1.51-.036-2.769-.556-3.773-1.56S.036 15.523 0 14.013V9.987c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.854c.31-.31.744-.465 1.3-.465h1.114c.31.31.744.465 1.3.465h1.114c.555 0 .99.155 1.3.465h1.113c.556 0 .99.155 1.301.465zM8.7 6.98c-.13-.045-.246-.13-.35-.255-.105-.124-.157-.24-.157-.35H6.47c0 .11.052.226.157.35.104.126.22.21.35.255h1.723zm6.53 0c.13-.045.246-.13.35-.255.105-.124.157-.24.157-.35h-1.723c0 .11.052.226.157.35.104.126.22.21.35.255zm2.718 1.007c-.32 0-.595.106-.824.32-.23.213-.345.49-.345.83v.744H6.62V9.13c0-.34-.115-.614-.345-.828-.23-.213-.505-.32-.825-.32-.32 0-.595.107-.824.32-.23.214-.345.49-.345.83v1.67c.397.05.676.192.837.428.16.236.24.523.24.86 0 .34-.08.627-.24.863-.16.236-.44.378-.837.428v1.665c0 .34.115.617.345.83.23.214.504.32.824.32.32 0 .595-.106.825-.32.23-.213.345-.49.345-.83v-.744h10.93v.744c0 .34.115.617.345.83.23.214.504.32.824.32.32 0 .595-.106.825-.32.23-.213.345-.49.345-.83v-1.664c-.397-.05-.677-.192-.838-.43-.16-.236-.24-.522-.24-.86 0-.337.08-.623.24-.86.16-.237.44-.379.838-.43V9.13c0-.34-.115-.615-.345-.83-.23-.214-.504-.32-.824-.32zm-8.44 4.62H8.01v-.938h1.5v.938zm5.66 0h-1.5v-.938h1.5v.938z"/></svg>
-    </button>
+    <button class="bili-play" onclick="biliPlay()" title="B 站直接播放当前番剧"><span style="color:#fff;font-weight:700;font-size:13px">B站</span></button>
     <input id="bq" placeholder="B站搜索番剧..." onkeydown="if(event.key==='Enter')bSearch()">
     <button class="bili-s" onclick="bSearch()">搜索</button>
     <button class="bili-s" id="biliTg" onclick="biliToggle()" style="display:none">收起</button>
@@ -262,6 +260,7 @@ async function doExpand(id,name,from){
   blog('doExpand id='+id,'name='+name,'from='+(from||'season'));
   lastFrom=from||'season';
   curName=name;  // B 站直接播放用
+  const bq=$('#bq');if(bq)bq.value=name;  // 搜索框默认填充番剧名
   $('#stat').style.display='';
   $('#stat').textContent='正在加载「'+name+'」…';
   try{
@@ -507,17 +506,25 @@ async function biliPlay(){
   $('#biliArea').style.display='block';
   try{await ensureBili();blog('脚本加载完成');}catch(e){blog('脚本加载失败 '+e.message);toast(e.message,'err');return;}
   try{
-    const r=await fetch('/bili?action=search&kw='+encodeURIComponent(name),{cache:'no-store'});
-    const ct=r.headers.get('content-type')||'';
-    blog('biliPlay search http='+r.status,'ct='+ct);
-    if(!/json/i.test(ct))throw new Error('搜索被风控,稍后重试');
-    const txt=await r.text();
-    blog('biliPlay search body='+txt.length+'B');
-    if(!txt.trim())throw new Error('搜索返回空(风控),稍后重试');
-    const j=JSON.parse(txt);
-    const list=(j.data&&j.data.result)||[];
-    blog('biliPlay 结果数='+list.length);
-    if(!list.length)throw new Error('B 站无结果');
+    // 搜索词变体:全名 → 去"第X季/季" → 去空格(全名常触发风控,短名更稳)
+    const variants=[name, name.replace(/\s*第?[一二三四五六七八九十百\d]+\s*季\s*$/,'').trim(), name.replace(/\s+/g,'')];
+    let list=[],lastErr='';
+    for(const kw of variants){
+      if(!kw)continue;
+      blog('搜索变体 kw='+kw);
+      const r=await fetch('/bili?action=search&kw='+encodeURIComponent(kw),{cache:'no-store'});
+      const ct=r.headers.get('content-type')||'';
+      const txt=await r.text();
+      blog('http='+r.status,'ct='+ct,'body='+txt.length+'B');
+      if(txt.trim()){
+        try{
+          const j=JSON.parse(txt);
+          list=(j.data&&j.data.result)||[];
+          if(list.length){blog('命中 kw='+kw,'结果数='+list.length);break;}
+        }catch(e){lastErr='JSON 解析失败:'+e.message;}
+      }else{lastErr='空响应(风控)';}
+    }
+    if(!list.length){blog('全部变体失败 lastErr='+lastErr);throw new Error(lastErr||'搜索返回空,稍后重试');}
     const v=biliPick(list);
     blog('biliPlay 选中='+v.title.replace(/<\/?em[^>]*>/g,''),'bvid='+v.bvid);
     $('#biliTitle').textContent='B 站:'+v.title.replace(/<\/?em[^>]*>/g,'').slice(0,55);
