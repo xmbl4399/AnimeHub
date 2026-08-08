@@ -119,14 +119,18 @@ checkLogin();
     autoSearchAndPlay(kw);
   }
 })();
+let curBvid=null;
+let lastList=[];
 function renderResults(list){
   const box=document.getElementById('results');
+  lastList=list;
   if(!list.length){box.innerHTML='<div class=st>无结果(风控或确实无)</div>';return;}
   box.innerHTML='';
   list.slice(0,15).forEach(v=>{
     const d=document.createElement('div');d.className='vitem';
     const t=v.title.replace(/<\/?em[^>]*>/g,'');
     const isCollection=/全\d+[话集話]|全集|合集|1-\d/.test(t);
+    if(v.bvid===curBvid)d.style.border='1px solid #ffd700';  // 当前播放项黄框标识
     d.innerHTML='<div class=info><div class=t>'+esc(t)+'</div>'+
       '<div class=m><span>▶ '+fmt(v.play)+'</span><span>弹 <b>'+fmt(v.danmaku)+'</b></span><span>⏱ '+esc(v.duration)+'</span><span>'+esc(v.author)+'</span>'+(isCollection?'<span style="color:#ffd700">合集</span>':'')+'</div></div>';
     d.onclick=()=>openPlayer(v);
@@ -289,8 +293,10 @@ function toggleResults(){
   btn.textContent=hidden?'收起':'展开';
 }
 function openPlayer(v){
+  curBvid=v.bvid;
   document.getElementById('results').style.display='none';  // 点选后折叠列表
   document.getElementById('tgBtn').textContent='展开';
+  if(lastList.length)renderResults(lastList);  // 重渲染:展开列表时当前项带黄框
   playBili(v,1,null);
 }
 </script>
