@@ -160,7 +160,7 @@ function makePlayer(u,danmu){
     fullscreen:true,
     fullscreenWeb:true,
     theme:'#ffd700',
-    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,visible:true,emitter:false})]
+    plugins:[artplayerPluginDanmuku({danmuku:()=>Promise.resolve(danmu),speed:8,opacity:.9,margin:[10,'75%'],antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false})]
   });
   biliArt.on('ready',()=>{
     L('ArtPlayer ready,duration =',biliArt.duration);
