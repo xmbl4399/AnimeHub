@@ -83,7 +83,7 @@ body{color:#e6edf3;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;bac
 #dmReBtn{position:absolute;top:10px;right:10px;z-index:950;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer}
 #dmReBtn:hover{border-color:#ffd700}
 /* 弹幕按钮组(插件自带开关/设置/样式)移入控制条右侧:取消插件默认 width:100%,按内容收缩 */
-.art-controls-right .artplayer-plugin-danmuku{width:auto!important;height:auto!important;justify-content:flex-end;gap:6px;margin-left:6px}
+.art-controls-center .artplayer-plugin-danmuku{width:auto!important;height:auto!important;justify-content:flex-end;gap:6px;margin-left:6px}
 /* 弹幕设置/样式面板缩小 + 右对齐,移动端不溢出 */
 .artplayer-plugin-danmuku .apd-config .apd-config-panel,
 .artplayer-plugin-danmuku .apd-style .apd-style-panel{left:auto!important;right:0!important;width:min(256px,80vw)!important;padding:8px!important}
@@ -184,7 +184,7 @@ function createPlayer(url,danmu,opts){
     try{
       const box=document.getElementById('artContainer');
       const dm=box.querySelector('.artplayer-plugin-danmuku');
-      const right=box.querySelector('.art-controls-right');
+      const right=box.querySelector('.art-controls-center');
       if(dm&&right&&dm.parentElement!==right){
         right.insertBefore(dm,right.firstChild);
         dm.style.cssText='';
