@@ -177,7 +177,7 @@ function createPlayer(url,danmu,opts){
     autoSize:false,aspectRatio:true,fullscreen:true,fullscreenWeb:true,theme:'#ffd700',
     plugins:[artplayerPluginDanmuku({
       danmuku:()=>Promise.resolve(danmu||[]),
-      speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false,margin:["37.5%","25%"]
+      speed:7.5,opacity:0.9,antiOverlap:true,synchronousPlayback:true,visible:true,emitter:false,margin:[0,0]
     })]
   },opts||{}));
   // 弹幕按钮组(插件自带开关/设置/样式)移入控制条右侧:MutationObserver 在插件DOM一出现就移,避免先默认位置再跳变
@@ -203,6 +203,20 @@ function createPlayer(url,danmu,opts){
   moveDm();
   art.on('subtitleLoad',hideSubLoading);
   bindFullscreenRotate(art);
+  // 诊断:弹幕显示区域实际尺寸
+  setTimeout(()=>{
+    try{
+      const box=document.getElementById('artContainer');
+      const app=box.querySelector('.artplayer-app');
+      const cv=box.querySelector('.art-danmuku')||box.querySelector('canvas');
+      const p=art.plugin&&art.plugin.danmuku;
+      const mt=p&&p.marginTop?p.marginTop():'?';
+      const mb=p&&p.marginBottom?p.marginBottom():'?';
+      console.log('[DM-AREA] 弹幕画布=',cv?Math.round(cv.getBoundingClientRect().width)+'x'+Math.round(cv.getBoundingClientRect().height):'?',
+        'marginTop='+mt,'marginBottom='+mb,
+        'app=',app?Math.round(app.getBoundingClientRect().width)+'x'+Math.round(app.getBoundingClientRect().height):'?');
+    }catch(e){console.log('[DM-AREA] err='+e.message);}
+  },600);
   return art;
 }
 function play(row,url){
