@@ -34,7 +34,7 @@ button:hover{border-color:#ffd700;color:#ffd700}
       <button id=logoutBtn onclick=doLogout() style="display:none">退出</button>
     </div>
   </div>
-  <div class=row><input id=q placeholder="输入番名搜索B站..." onkeydown="if(event.key==='Enter')doSearch()"><button onclick=doSearch()>搜索</button></div>
+  <div class=row><input id=q placeholder="输入番名搜索B站..." onkeydown="if(event.key==='Enter')doSearch()"><button onclick=doSearch()>搜索</button><button id=tgBtn onclick=toggleResults()>收起</button></div>
   <div id=results></div>
 </div>
 <div class=box id=playerArea>
@@ -115,6 +115,7 @@ function doSearch(){
   if(!q)return;
   box.innerHTML='<div class=st>搜索中...</div>';
   box.style.display='block';  // 重新搜索时恢复列表
+  document.getElementById('tgBtn').textContent='收起';
   fetch('/bili?action=search&kw='+encodeURIComponent(q),{cache:'no-store'})
     .then(r=>{if(!/json/i.test(r.headers.get('content-type')||''))throw new Error('风控');return r.json();})
     .then(j=>{
@@ -232,8 +233,15 @@ document.getElementById('st').textContent='共 '+pages.length+' 个分P,点击�
     box.appendChild(b);
   });
 }
+function toggleResults(){
+  const box=document.getElementById('results'),btn=document.getElementById('tgBtn');
+  const hidden=box.style.display==='none';
+  box.style.display=hidden?'block':'none';
+  btn.textContent=hidden?'收起':'展开';
+}
 function openPlayer(v){
   document.getElementById('results').style.display='none';  // 点选后折叠列表
+  document.getElementById('tgBtn').textContent='展开';
   playBili(v,1,null);
 }
 </script>
