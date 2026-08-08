@@ -55,21 +55,5 @@ if [ $DRY -eq 0 ]; then
   /etc/init.d/aria2 restart 2>/dev/null || true
 fi
 
-# --- 6. dandanplay key 同步到 nginx 反代(仅文件存在时) ---
-DD=/etc/nginx/conf.d/dandan.locations
-if [ -f "$DD" ]; then
-  DA=$(uci get mediahub.@main[0].dandan_appid 2>/dev/null)
-  DS=$(uci get mediahub.@main[0].dandan_secret 2>/dev/null)
-  if [ -n "$DA" ] && [ -n "$DS" ] && ! grep -q "X-AppId \"$DA\"" "$DD"; then
-    sed -i "s|X-AppId \"[^\"]*\"|X-AppId \"$DA\"|g" "$DD"
-    sed -i "s|X-AppSecret \"[^\"]*\"|X-AppSecret \"$DS\"|g" "$DD"
-    if [ $DRY -eq 0 ]; then
-      /etc/init.d/nginx reload 2>/dev/null || true
-    else
-      echo '{"dandan_key":"would update"}'
-    fi
-  fi
-fi
-
 [ $DRY -eq 0 ] && echo '{"ok":true,"applied":true}'
 exit 0

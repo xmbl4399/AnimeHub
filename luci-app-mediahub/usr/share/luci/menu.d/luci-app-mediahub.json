@@ -1,6 +1,6 @@
 {
 	"admin/services/mediahub": {
-		"title": "番剧库",
+		"title": "AnimeHub",
 		"order": 60,
 		"action": {
 			"type": "view",

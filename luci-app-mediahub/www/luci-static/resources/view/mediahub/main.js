@@ -10,7 +10,7 @@ function api(action) {
 
 return view.extend({
 	render: function () {
-		var m = new form.Map('mediahub', _('番剧库'), _('服务主开关、aria2 下载目录全局应用、数据维护与诊断。保存表单后点击下方按钮应用。'));
+		var m = new form.Map('mediahub', _('AnimeHub'), _('服务主开关、aria2 下载目录全局应用、数据维护与诊断。保存表单后点击下方按钮应用。'));
 		var s = m.section(form.TypedSection, 'main', _('服务设置'));
 		s.anonymous = true;
 		s.addremove = false;
@@ -27,15 +27,6 @@ return view.extend({
 		o.optional = false;
 
 		o = s.option(form.Value, 'fbpass', _('FileBrowser 密码'), _('hub「文件」tab 自动登录用;与 FileBrowser 实际密码保持一致,否则自动登录失败会退回登录页手动输入'));
-		o.password = true;
-		o.rmempty = false;
-		o.optional = false;
-
-		o = s.option(form.Value, 'dandan_appid', _('弹弹play AppId'), _('影视库弹幕 API 认证(DevCenter 申请);保存后点「立即应用」写入 nginx 反代'));
-		o.rmempty = false;
-		o.optional = false;
-
-		o = s.option(form.Value, 'dandan_secret', _('弹弹play AppSecret'), _('与 AppId 配套;应用后立即生效(nginx reload)'));
 		o.password = true;
 		o.rmempty = false;
 		o.optional = false;
